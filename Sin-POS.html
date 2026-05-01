@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A3Sinergy - Punto de Venta Cloud</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-slate-100 flex h-screen overflow-hidden text-slate-800 relative">
+
+    <!-- Indicador de Sincronización -->
+    <div id="loader-nube" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-[200] animate-pulse hidden">
+        Procesando en la nube...
+    </div>
+
+    <!-- MODAL DE LOGIN -->
+    <div id="modal-login" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
+            <div class="text-4xl font-black mb-2"><span class="text-blue-600">A3</span>Sinergy</div>
+            <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8 border-b pb-4">Terminal Cloud Bloqueado</p>
+            
+            <div class="space-y-4">
+                <div class="text-left">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Usuario / Caja</label>
+                    <select id="login-usuario" class="w-full border-2 border-slate-200 p-3 rounded-xl font-bold outline-none focus:border-blue-500 bg-slate-50">
+                        <option value="Caja01">Caja 01</option>
+                        <option value="Caja02">Caja 02</option>
+                        <option value="Admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="text-left">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Contraseña</label>
+                    <input type="password" id="login-clave" placeholder="****" class="w-full border-2 border-slate-200 p-3 rounded-xl font-black text-center tracking-widest text-2xl outline-none focus:border-blue-500">
+                </div>
+                <button onclick="window.verificarLogin()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition mt-4">
+                    INICIAR TURNO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE FONDO DE CAJA -->
+    <div id="modal-fondo" class="hidden fixed inset-0 bg-slate-900/95 z-[90] flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl">
+            <h3 class="text-2xl font-black text-slate-800 mb-2 border-b pb-2">Apertura de Caja</h3>
+            <p class="text-sm text-slate-500 mb-6">¿Con cuánto dinero en efectivo inicia el turno para dar vuelto?</p>
+            
+            <div class="space-y-4 mb-8">
+                <div class="flex items-center justify-between border-b pb-2">
+                    <span class="font-bold text-slate-700 flex items-center gap-2"><span class="text-xl">💵</span> Dólares ($)</span>
+                    <input type="number" id="fondo-usd" value="0" class="w-32 border-2 border-slate-200 p-2 rounded-lg font-black text-right text-blue-700 outline-none focus:border-blue-500">
+                </div>
+                <div class="flex items-center justify-between border-b pb-2">
+                    <span class="font-bold text-slate-700 flex items-center gap-2"><span class="text-xl">🪙</span> Bolívares (Bs)</span>
+                    <input type="number" id="fondo-bs" value="0" class="w-32 border-2 border-slate-200 p-2 rounded-lg font-black text-right text-emerald-600 outline-none focus:border-emerald-500">
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="window.iniciarTurno(true)" class="flex-1 bg-slate-100 text-slate-600 p-3 rounded-xl font-bold hover:bg-slate-200 transition text-sm">
+                    EMPEZAR LIMPIO (0)
+                </button>
+                <button onclick="window.iniciarTurno(false)" class="flex-1 bg-emerald-600 text-white p-3 rounded-xl font-black shadow-lg hover:bg-emerald-700 transition">
+                    CONFIRMAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Lateral -->
+    <div class="w-20 hover:w-64 transition-all duration-300 bg-slate-900 text-white flex flex-col shadow-xl overflow-hidden group absolute z-40 h-full md:relative md:w-64">
+        <div class="p-6 text-2xl font-bold border-b border-slate-800 flex items-center gap-2 whitespace-nowrap">
+            <span class="text-blue-500">A3</span>Sinergy
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <a href="inventario.html" class="flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 transition whitespace-nowrap text-slate-400">
+                <span class="text-xl">📦</span> <span class="md:block hidden group-hover:block font-semibold">Inventario</span>
+            </a>
+            <a href="pos.html" class="flex items-center gap-4 text-left p-3 rounded bg-blue-600 shadow-lg whitespace-nowrap text-white">
+                <span class="text-xl">🛒</span> <span class="md:block hidden group-hover:block font-semibold">Punto de Venta</span>
+            </a>
+            <button onclick="window.abrirResumen()" class="w-full flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 transition whitespace-nowrap text-emerald-400 mt-4 border border-slate-700">
+                <span class="text-xl">📊</span> <span class="md:block hidden group-hover:block font-bold">Resumen del Día</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <p class="text-[10px] text-slate-500 uppercase font-bold">Cajero Activo: <span id="label-cajero" class="text-blue-400">---</span></p>
+            <p class="text-[10px] text-slate-500 uppercase font-bold mt-2">Tasa Actual</p>
+            <p id="info-tasa" class="text-emerald-400 font-black">Bs. 0.00</p>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden md:ml-0 ml-20">
+        <!-- Panel Izquierdo: Catálogo -->
+        <div class="flex-1 flex flex-col p-6 h-full overflow-hidden">
+            <header class="mb-6 flex justify-between items-end gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 uppercase tracking-tighter">Terminal POS</h1>
+                    <p class="text-xs text-emerald-600 font-bold">🟢 En línea</p>
+                </div>
+                <div class="w-1/2 flex gap-2">
+                    <input type="text" id="buscador-pos" autofocus onkeyup="window.manejarEscaneo(event)" placeholder="🔍 Escanear código o buscar..." class="w-full border-2 border-blue-200 p-3 rounded-xl bg-white shadow-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition text-lg font-bold">
+                    <button onclick="window.abrirCamara()" class="bg-slate-900 text-white p-3 rounded-xl hover:bg-blue-600 transition shadow-lg flex items-center justify-center w-14" title="Escanear con cámara">📷</button>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto bg-white rounded-xl shadow-md border border-slate-200 p-2">
+                <div id="grid-productos" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2"></div>
+            </div>
+        </div>
+
+        <!-- Panel Derecho: Ticket / Factura -->
+        <div class="w-full md:w-96 bg-white shadow-2xl border-l border-slate-200 flex flex-col h-full z-10">
+            <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+                <h2 class="font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">📄 Factura</h2>
+                <button onclick="window.limpiarCarrito()" class="text-xs text-red-500 hover:text-red-700 font-bold bg-red-50 px-2 py-1 rounded border border-red-100">Vaciar</button>
+            </div>
+
+            <div class="p-4 border-b space-y-4 bg-white">
+                <div class="flex justify-between items-center bg-slate-50 p-2 rounded border">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">Nivel de Precio</span>
+                    <button onclick="window.abrirModalClave()" class="flex items-center gap-1 text-xs bg-slate-800 text-white px-3 py-1 rounded font-bold hover:bg-slate-700 shadow"><span id="label-nivel-precio" class="uppercase">Detal</span> 🔒</button>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase flex justify-between items-center">
+                        Cliente 
+                        <div>
+                            <span id="badge-cliente" class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 hidden font-black">✓ Registrado</span>
+                            <span id="badge-nuevo" class="text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200 hidden font-black">📝 Nuevo</span>
+                        </div>
+                    </label>
+                    <div class="flex gap-2">
+                        <div class="w-2/5 flex border rounded bg-slate-50 outline-blue-500 overflow-hidden focus-within:ring-1 focus-within:ring-blue-500">
+                            <select id="cliente-tipo-doc" onchange="window.buscarCliente()" class="bg-slate-200 text-[10px] font-bold p-2 outline-none border-r border-slate-300 cursor-pointer">
+                                <option value="V">V</option><option value="E">E</option><option value="J">J</option><option value="G">G</option>
+                            </select>
+                            <input type="text" id="cliente-rif" placeholder="Número" onblur="window.buscarCliente()" onkeypress="window.manejarEnterCliente(event)" class="w-full bg-transparent p-2 text-xs outline-none font-bold">
+                        </div>
+                        <input type="text" id="cliente-nombre" placeholder="Razón Social" class="w-3/5 border p-2 rounded bg-slate-50 text-xs outline-blue-500 uppercase">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 bg-slate-50/50">
+                <ul id="lista-carrito" class="space-y-2"></ul>
+            </div>
+
+            <div class="p-6 bg-slate-900 text-white rounded-tl-3xl">
+                <div class="space-y-2 mb-4 border-b border-slate-700 pb-4">
+                    <div class="flex justify-between text-slate-400 text-sm"><span>Subtotal:</span><span id="pos-subtotal">$0.00</span></div>
+                    <div class="flex justify-between text-slate-400 text-sm"><span>IVA (<span id="pos-iva-perc">16</span>%):</span><span id="pos-iva">$0.00</span></div>
+                    <div class="flex justify-between items-end mt-2"><span class="text-lg font-bold">TOTAL USD:</span><span id="pos-total-usd" class="text-3xl font-black text-blue-400">$0.00</span></div>
+                    <div class="flex justify-between items-end"><span class="text-xs text-slate-400">TOTAL BS:</span><span id="pos-total-bs" class="text-xl font-bold text-emerald-400">Bs. 0.00</span></div>
+                </div>
+                <button onclick="window.abrirModalPago()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-lg font-black py-4 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition transform active:scale-95 uppercase tracking-widest">
+                    💸 Procesar Pago
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Pago Múltiple Mixto -->
+    <div id="modal-pago" class="hidden fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl w-full max-w-lg shadow-2xl">
+            <h3 class="text-xl font-black text-slate-800 mb-2 border-b pb-2 flex justify-between items-center">
+                Registro de Pago
+                <button onclick="window.cerrarModalPago()" class="text-red-500 text-sm bg-red-50 px-2 py-1 rounded">X</button>
+            </h3>
+            
+            <div class="flex justify-between items-center my-4 p-4 bg-slate-800 text-white rounded-xl shadow-inner">
+                <div><p class="text-[10px] text-slate-400 font-bold uppercase">Monto a Cobrar</p><p id="modal-pago-usd" class="text-3xl font-black text-blue-400">$0.00</p></div>
+                <div class="text-right"><p class="text-[10px] text-slate-400 font-bold uppercase">Referencia</p><p id="modal-pago-bs" class="text-lg font-bold text-emerald-400">Bs. 0.00</p></div>
+            </div>
+
+            <p class="text-xs font-bold text-slate-500 mb-2 uppercase">Ingrese los montos recibidos:</p>
+            
+            <div class="space-y-2 mb-4 bg-slate-50 p-3 rounded-lg border">
+                <div class="flex items-center justify-between border-b pb-2"><span class="font-bold text-slate-700 flex items-center gap-2"><span class="text-xl">💵</span> Efectivo USD</span><div class="relative w-32"><span class="absolute left-2 top-2 text-slate-400 font-bold">$</span><input type="number" id="inp-usd" oninput="window.calcularPagos()" class="w-full border-2 border-slate-200 p-2 pl-6 rounded-lg font-black text-right text-blue-700 outline-none focus:border-blue-500"></div></div>
+                <div class="flex items-center justify-between border-b pb-2"><span class="font-bold text-slate-700 flex items-center gap-2"><span class="text-xl">🟨</span> Binance USDT</span><div class="relative w-32"><span class="absolute left-2 top-2 text-slate-400 font-bold">$</span><input type="number" id="inp-binance" oninput="window.calcularPagos()" class="w-full border-2 border-slate-200 p-2 pl-6 rounded-lg font-black text-right text-yellow-600 outline-none focus:border-yellow-500"></div></div>
+                <div class="flex items-center justify-between border-b pb-2"><span class="font-bold text-slate-700 flex items-center gap-2"><span class="text-xl">💳</span> Débito (Punto)</span><div class="relative w-32"><span class="absolute left-2 top-2 text-slate-400 font-bold text-[10px] mt-1">Bs.</span><input type="number" id="inp-debito" oninput="window.calcularPagos()" class="w-full border-2 border-slate-200 p-2 pl-8 rounded-lg font-black text-right text-slate-700 outline-none focus:border-slate-500"></div></div>
+                <div class="flex items-center justify-between border-b pb-2"><span class="font-bold text-slate-700 flex items-center gap-2"><span class="text-xl">🏦</span> Pago Móvil/Transf.</span><div class="relative w-32"><span class="absolute left-2 top-2 text-slate-400 font-bold text-[10px] mt-1">Bs.</span><input type="number" id="inp-trans" oninput="window.calcularPagos()" class="w-full border-2 border-slate-200 p-2 pl-8 rounded-lg font-black text-right text-purple-600 outline-none focus:border-purple-500"></div></div>
+                <div class="flex items-center justify-between"><span class="font-bold text-slate-700 flex items-center gap-2"><span class="text-xl">🪙</span> Efectivo Bs.</span><div class="relative w-32"><span class="absolute left-2 top-2 text-slate-400 font-bold text-[10px] mt-1">Bs.</span><input type="number" id="inp-bs" oninput="window.calcularPagos()" class="w-full border-2 border-slate-200 p-2 pl-8 rounded-lg font-black text-right text-emerald-600 outline-none focus:border-emerald-500"></div></div>
+            </div>
+
+            <div id="panel-estado-pago" class="p-4 rounded-xl mb-4 bg-orange-50 border border-orange-200 text-center transition-colors">
+                <p id="label-estado-pago" class="text-sm font-bold text-orange-600 uppercase">Resta por cobrar:</p>
+                <div class="flex justify-center items-center gap-4 mt-1"><span id="monto-estado-usd" class="text-2xl font-black text-orange-700">$0.00</span><span id="monto-estado-bs" class="text-sm font-bold text-orange-500">Bs. 0.00</span></div>
+            </div>
+
+            <button onclick="window.confirmarVentaFinal()" id="btn-confirmar-pago" disabled class="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition uppercase tracking-wider">
+                CONFIRMAR VENTA
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: Resumen del Día y Cierre Z -->
+    <div id="modal-resumen" class="hidden fixed inset-0 bg-slate-900/95 z-[80] flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
+            <button onclick="window.cerrarResumen()" class="absolute top-4 right-4 bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-bold hover:bg-slate-200">Cerrar</button>
+            <h3 class="text-xl font-black text-slate-800 mb-1 flex items-center gap-2">📊 Cierre de Caja (Turno)</h3>
+            <p class="text-xs text-slate-500 mb-4 pb-4 border-b" id="fecha-resumen">Hoy</p>
+
+            <div class="space-y-3 mb-6 max-h-96 overflow-y-auto pr-2">
+                <div class="bg-slate-800 p-3 rounded-lg border text-white flex justify-between items-center mb-4 shadow-inner"><span class="text-xs font-bold uppercase text-slate-300">Fondo Inicial:</span><span class="font-black" id="res-fondo">$0.00 / Bs. 0.00</span></div>
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-blue-200"><div class="flex items-center gap-2 font-bold text-slate-700"><span class="text-xl">💵</span> Dólares Efectivo</div><div class="text-right font-black text-blue-600 text-lg" id="res-usd">$0.00</div></div>
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-300"><div class="flex items-center gap-2 font-bold text-slate-700"><span class="text-xl">💳</span> Punto de Venta</div><div class="text-right"><div class="font-black text-slate-700 text-lg" id="res-deb-bs">Bs. 0.00</div><div class="text-[10px] text-slate-400 font-bold" id="res-deb-usd">Ref: $0.00</div></div></div>
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-purple-200"><div class="flex items-center gap-2 font-bold text-slate-700"><span class="text-xl">🏦</span> Transferencias</div><div class="text-right"><div class="font-black text-purple-600 text-lg" id="res-trans-bs">Bs. 0.00</div><div class="text-[10px] text-slate-400 font-bold" id="res-trans-usd">Ref: $0.00</div></div></div>
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-emerald-200"><div class="flex items-center gap-2 font-bold text-slate-700"><span class="text-xl">🪙</span> Bs. Efectivo</div><div class="text-right"><div class="font-black text-emerald-600 text-lg" id="res-bs-efec-bs">Bs. 0.00</div><div class="text-[10px] text-slate-400 font-bold" id="res-bs-efec-usd">Ref: $0.00</div></div></div>
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-yellow-200"><div class="flex items-center gap-2 font-bold text-slate-700"><span class="text-xl">🟨</span> Binance USDT</div><div class="text-right font-black text-yellow-600 text-lg" id="res-binance">$0.00</div></div>
+            </div>
+
+            <div class="bg-slate-900 text-white p-4 rounded-xl flex justify-between items-center mb-4">
+                <span class="font-bold uppercase text-sm">Venta del Turno:</span>
+                <span class="text-2xl font-black" id="res-total-general">$0.00</span>
+            </div>
+
+            <button onclick="window.ejecutarCierreZ()" class="w-full bg-red-600 text-white p-3 rounded-xl font-black shadow-lg hover:bg-red-700 transition flex justify-center items-center gap-2 uppercase tracking-widest">
+                🔒 Emitir Cierre Z (PDF)
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-camara" class="hidden fixed inset-0 bg-slate-900/90 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl relative"><button onclick="window.cerrarCamara()" class="absolute top-4 right-4 bg-red-100 text-red-600 px-3 py-1 rounded-full font-bold">Cerrar</button><h3 class="text-lg font-black mb-4">Alinear Código</h3><div id="reader" class="w-full bg-slate-100 rounded-lg overflow-hidden border-2 border-dashed border-slate-300"></div></div></div>
+    <div id="modal-clave" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-6 rounded-2xl w-80 shadow-2xl"><h3 class="text-lg font-black text-center mb-2">Autorización Requerida</h3><input type="password" id="input-clave" placeholder="****" class="w-full border-2 p-3 rounded-lg text-center text-xl tracking-widest mb-4 outline-blue-500"><div class="flex gap-2"><button onclick="window.cerrarModales()" class="flex-1 bg-slate-100 p-2 rounded-lg font-bold">Cancelar</button><button onclick="window.verificarClave()" class="flex-1 bg-blue-600 text-white p-2 rounded-lg font-bold">Acceder</button></div></div></div>
+    <div id="modal-nivel" class="hidden fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white p-6 rounded-2xl w-80 shadow-2xl"><h3 class="text-lg font-black text-center mb-4">Seleccionar Precio</h3><div class="space-y-2"><button onclick="window.cambiarNivel('detal')" class="w-full bg-blue-50 text-blue-700 p-3 rounded-lg font-bold">Precio DETAL</button><button onclick="window.cambiarNivel('mayor')" class="w-full bg-emerald-50 text-emerald-700 p-3 rounded-lg font-bold">Precio MAYOR</button><button onclick="window.cambiarNivel('gran')" class="w-full bg-purple-50 text-purple-700 p-3 rounded-lg font-bold">Precio GRAN MAYOR</button></div><button onclick="window.cerrarModales()" class="w-full mt-4 text-sm font-bold">Cancelar</button></div></div>
+
+    <!-- SCRIPT FIREBASE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBydRzHt9Ja3RYvBbXO7n6Cv6pyJqwIUbQ",
+            authDomain: "sinergy-d78d0.firebaseapp.com",
+            databaseURL: "https://sinergy-d78d0-default-rtdb.firebaseio.com",
+            projectId: "sinergy-d78d0",
+            storageBucket: "sinergy-d78d0.firebasestorage.app",
+            messagingSenderId: "399343343582",
+            appId: "1:399343343582:web:29c686fd7e229e8f20ef4f",
+            measurementId: "G-H1DJ1KZBJJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Variables de Estado (Ahora se llenan desde Firebase)
+        let inventario = [];
+        let config = { tasa: 36.50, iva: 16, mDetal: 24, mMayor: 18, mGran: 13, adminPass: "1234" };
+        let clientes = JSON.parse(localStorage.getItem('a3_clientes')) || []; // Clientes por ahora los dejamos locales
+        let ventasGlobales = []; // Todas las ventas de firebase
+        let sesionA3 = JSON.parse(localStorage.getItem('a3_sesion')) || null; // La sesion sí es local de esta PC
+        
+        let carrito = [];
+        let nivelPrecioActual = 'detal';
+        let totalActualUSD = 0;
+        let totalActualBS = 0;
+        const loader = document.getElementById('loader-nube');
+        const usuariosDB = { "Caja01": "1234", "Caja02": "1234", "Admin": "1234" };
+
+        // --- ESCUCHADORES DE FIREBASE EN TIEMPO REAL ---
+        
+        onSnapshot(doc(db, "sistema", "config"), (documento) => {
+            if (documento.exists()) {
+                config = documento.data();
+                document.getElementById('info-tasa').innerText = `Bs. ${config.tasa.toFixed(2)}`;
+                document.getElementById('pos-iva-perc').innerText = config.iva;
+                usuariosDB["Admin"] = config.adminPass; // Actualiza clave admin
+                if(sesionA3 && sesionA3.activa) {
+                    window.renderizarProductos();
+                    window.renderizarCarrito(); // Recalcula si el dueño cambia la tasa en medio de una venta
+                }
+            }
+        });
+
+        onSnapshot(collection(db, "inventario"), (snapshot) => {
+            inventario = [];
+            snapshot.forEach((doc) => inventario.push({ id: doc.id, ...doc.data() }));
+            if(sesionA3 && sesionA3.activa) window.renderizarProductos(document.getElementById('buscador-pos').value);
+        });
+
+        onSnapshot(collection(db, "ventas"), (snapshot) => {
+            ventasGlobales = [];
+            snapshot.forEach((doc) => ventasGlobales.push({ id: doc.id, ...doc.data() }));
+        });
+
+        // --- SISTEMA DE LOGIN LOCAL ---
+        window.checkLogin = function() {
+            if (!sesionA3 || !sesionA3.activa) {
+                document.getElementById('modal-login').classList.remove('hidden');
+                setTimeout(() => document.getElementById('login-clave').focus(), 100);
+            } else {
+                document.getElementById('modal-login').classList.add('hidden');
+                document.getElementById('label-cajero').innerText = sesionA3.cajero;
+                document.getElementById('info-tasa').innerText = `Bs. ${config.tasa.toFixed(2)}`;
+                window.renderizarProductos();
+            }
+        }
+        document.getElementById('login-clave').addEventListener('keypress', e => { if(e.key === 'Enter') window.verificarLogin(); });
+        window.verificarLogin = function() {
+            const user = document.getElementById('login-usuario').value;
+            const pass = document.getElementById('login-clave').value;
+            if (usuariosDB[user] === pass) {
+                document.getElementById('modal-login').classList.add('hidden');
+                document.getElementById('modal-fondo').classList.remove('hidden');
+                setTimeout(() => document.getElementById('fondo-usd').focus(), 100);
+            } else { alert("❌ Contraseña incorrecta."); document.getElementById('login-clave').value = ''; }
+        }
+        window.iniciarTurno = function(limpio) {
+            const usd = limpio ? 0 : parseFloat(document.getElementById('fondo-usd').value) || 0;
+            const bs = limpio ? 0 : parseFloat(document.getElementById('fondo-bs').value) || 0;
+            // Se guarda un ID de sesion unico para agrupar las ventas de este turno
+            sesionA3 = { activa: true, cajero: document.getElementById('login-usuario').value, fechaApertura: new Date().toLocaleString('es-VE'), fondoUSD: usd, fondoBS: bs, idSesion: Date.now() };
+            localStorage.setItem('a3_sesion', JSON.stringify(sesionA3));
+            document.getElementById('modal-fondo').classList.add('hidden');
+            window.checkLogin();
+        }
+
+        // --- POS Y CARRITO ---
+        let html5QrcodeScanner;
+        window.abrirCamara = function() { document.getElementById('modal-camara').classList.remove('hidden'); html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false); html5QrcodeScanner.render(window.onScanSuccess, () => {}); }
+        window.onScanSuccess = function(decodedText) { window.cerrarCamara(); const p = inventario.find(x => x.codigo.toLowerCase() === decodedText.toLowerCase() || x.ref.toLowerCase() === decodedText.toLowerCase()); if (p) { window.agregarAlCarrito(p.id); document.getElementById('buscador-pos').value = ''; window.filtrarProductos(); } else alert(`❌ Artículo no registrado.`); }
+        window.cerrarCamara = function() { document.getElementById('modal-camara').classList.add('hidden'); if (html5QrcodeScanner) html5QrcodeScanner.clear(); }
+        window.manejarEscaneo = function(event) { const input = document.getElementById('buscador-pos'); const q = input.value.trim().toLowerCase(); if (event.key === 'Enter') { if (!q) return; const p = inventario.find(x => x.codigo.toLowerCase() === q || x.ref.toLowerCase() === q); if (p) { window.agregarAlCarrito(p.id); input.value = ''; window.filtrarProductos(); } else { alert("❌ No encontrado."); input.select(); } } else window.filtrarProductos(); }
+        
+        window.manejarEnterCliente = function(event) { if(event.key === 'Enter') { event.preventDefault(); window.buscarCliente(true); } }
+        window.buscarCliente = function(isEnter = false) { const num = document.getElementById('cliente-rif').value.trim(); const bReg = document.getElementById('badge-cliente'); const bNuevo = document.getElementById('badge-nuevo'); const iNom = document.getElementById('cliente-nombre'); bReg.classList.add('hidden'); bNuevo.classList.add('hidden'); if(!num) return; const rifC = `${document.getElementById('cliente-tipo-doc').value}-${num}`; const c = clientes.find(x => x.rif === rifC); if(c) { iNom.value = c.nombre; bReg.classList.remove('hidden'); } else { iNom.value = ''; bNuevo.classList.remove('hidden'); if(isEnter) iNom.focus(); } }
+        window.guardarClienteAutomatico = function() { const num = document.getElementById('cliente-rif').value.trim(); const rifC = `${document.getElementById('cliente-tipo-doc').value}-${num}`; const nom = document.getElementById('cliente-nombre').value.trim().toUpperCase(); if(num && nom) { if(!clientes.find(x => x.rif === rifC)) { clientes.push({ rif: rifC, nombre: nom }); localStorage.setItem('a3_clientes', JSON.stringify(clientes)); } } }
+
+        window.abrirModalClave = function() { document.getElementById('modal-clave').classList.remove('hidden'); setTimeout(() => document.getElementById('input-clave').focus(), 100); }
+        window.cerrarModales = function() { document.getElementById('modal-clave').classList.add('hidden'); document.getElementById('modal-nivel').classList.add('hidden'); document.getElementById('input-clave').value = ''; }
+        window.verificarClave = function() { const pass = document.getElementById('input-clave').value; if(pass === config.adminPass) { document.getElementById('modal-clave').classList.add('hidden'); document.getElementById('modal-nivel').classList.remove('hidden'); } else alert("❌ Clave incorrecta."); document.getElementById('input-clave').value = ''; }
+        window.cambiarNivel = function(nivel) { nivelPrecioActual = nivel; document.getElementById('label-nivel-precio').innerText = nivel; window.cerrarModales(); window.renderizarCarrito(); }
+        document.getElementById('input-clave').addEventListener('keypress', e => { if(e.key === 'Enter') window.verificarClave(); });
+
+        window.obtenerPrecio = function(producto) { let m = nivelPrecioActual === 'detal' ? config.mDetal : nivelPrecioActual === 'mayor' ? config.mMayor : config.mGran; return producto.costo * (1 + (m/100)); }
+        
+        window.renderizarProductos = function(filtro = '') { 
+            const grid = document.getElementById('grid-productos'); grid.innerHTML = ''; 
+            const f = inventario.filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo.toLowerCase().includes(filtro.toLowerCase()) || p.ref.toLowerCase().includes(filtro.toLowerCase())); 
+            if(f.length === 0) return grid.innerHTML = `<p class="col-span-full text-center text-slate-400 p-10 font-bold">Sin resultados.</p>`; 
+            f.forEach(p => { 
+                const pB = window.obtenerPrecio(p); const pIVA = pB * (1 + (config.iva/100)); const sC = p.existencia <= p.stockMin ? 'text-red-500 bg-red-50' : 'text-emerald-600 bg-emerald-50'; 
+                grid.innerHTML += `<div onclick="window.agregarAlCarrito('${p.id}')" class="bg-white border border-slate-100 p-3 rounded-lg hover:shadow-md cursor-pointer transition border-l-4 hover:border-blue-500 flex flex-col justify-between h-32 relative">${p.existencia <= 0 ? '<div class="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex items-center justify-center z-10"><span class="bg-red-600 text-white px-3 py-1 rounded font-black text-xs uppercase transform -rotate-12">Agotado</span></div>' : ''}<div class="flex justify-between items-start"><div><p class="text-[9px] text-slate-400 font-bold uppercase">${p.codigo}</p><h3 class="font-bold text-slate-800 leading-tight text-sm">${p.nombre}</h3></div><span class="text-[10px] font-black px-2 py-1 rounded ${sC}">${p.existencia} u.</span></div><div class="flex justify-between items-end mt-2"><div><p class="text-[9px] text-slate-400">P. ${nivelPrecioActual.toUpperCase()}</p><p class="font-black text-blue-600">$${pIVA.toFixed(2)}</p></div><button class="bg-slate-900 text-white w-8 h-8 rounded-full font-bold hover:bg-blue-600 transition">+</button></div></div>`; 
+            }); 
+        }
+        window.filtrarProductos = function() { window.renderizarProductos(document.getElementById('buscador-pos').value); }
+
+        window.agregarAlCarrito = function(id) { 
+            const p = inventario.find(x => x.id === id); 
+            if (!p || p.existencia <= 0) return alert("Agotado o no encontrado."); 
+            const i = carrito.find(x => x.id === id); 
+            if (i) { if(i.cantidad < p.existencia) i.cantidad++; else alert("No hay más stock."); } else carrito.push({ ...p, cantidad: 1 }); 
+            window.renderizarCarrito(); 
+        }
+        window.modificarCantidad = function(id, delta) { 
+            const idx = carrito.findIndex(x => x.id === id); const orig = inventario.find(x => x.id === id); 
+            if (idx !== -1) { const n = carrito[idx].cantidad + delta; if (n > 0 && n <= orig.existencia) carrito[idx].cantidad = n; else if (n === 0) carrito.splice(idx, 1); else alert("Límite de stock alcanzado."); window.renderizarCarrito(); } 
+        }
+        window.limpiarCarrito = function() { carrito = []; document.getElementById('cliente-rif').value = ''; document.getElementById('cliente-nombre').value = ''; document.getElementById('badge-cliente').classList.add('hidden'); document.getElementById('badge-nuevo').classList.add('hidden'); window.renderizarCarrito(); }
+
+        window.renderizarCarrito = function() {
+            const lista = document.getElementById('lista-carrito'); lista.innerHTML = ''; let sub = 0;
+            carrito.forEach(i => { const pB = window.obtenerPrecio(i); const sI = pB * i.cantidad; sub += sI;
+                lista.innerHTML += `<li class="bg-white p-3 rounded shadow-sm border border-slate-100 flex justify-between items-center"><div class="flex-1"><p class="text-[10px] text-slate-400 uppercase">${i.codigo}</p><p class="font-bold text-sm text-slate-800 leading-tight">${i.nombre}</p><p class="text-[10px] text-blue-600 font-bold">$${pB.toFixed(2)} c/u</p></div><div class="flex items-center gap-3"><div class="flex items-center bg-slate-100 rounded border"><button onclick="window.modificarCantidad('${i.id}', -1)" class="px-2 font-bold text-slate-500 hover:text-red-500">-</button><span class="text-sm font-black w-6 text-center">${i.cantidad}</span><button onclick="window.modificarCantidad('${i.id}', 1)" class="px-2 font-bold hover:text-emerald-500">+</button></div><p class="font-black w-14 text-right">$${sI.toFixed(2)}</p></div></li>`;
+            });
+            const ivaVal = sub * (config.iva / 100); totalActualUSD = sub + ivaVal; totalActualBS = totalActualUSD * config.tasa;
+
+            document.getElementById('pos-subtotal').innerText = `$${sub.toFixed(2)}`;
+            document.getElementById('pos-iva').innerText = `$${ivaVal.toFixed(2)}`;
+            document.getElementById('pos-total-usd').innerText = `$${totalActualUSD.toFixed(2)}`;
+            document.getElementById('pos-total-bs').innerText = `Bs. ${totalActualBS.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            if(sesionA3 && sesionA3.activa) document.getElementById('buscador-pos').focus();
+        }
+
+        // --- SISTEMA DE PAGOS Y ESCRITURA EN FIREBASE ---
+        window.abrirModalPago = function() {
+            if (carrito.length === 0) return alert("El carrito está vacío");
+            const nRif = document.getElementById('cliente-rif').value.trim(); const nom = document.getElementById('cliente-nombre').value.trim();
+            if(!nRif || !nom) if(!confirm("Faltan datos. ¿Vender como Cliente Genérico?")) return;
+
+            document.getElementById('modal-pago-usd').innerText = `$${totalActualUSD.toFixed(2)}`;
+            document.getElementById('modal-pago-bs').innerText = `Bs. ${totalActualBS.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+            document.querySelectorAll('#modal-pago input[type="number"]').forEach(i => i.value = ''); window.calcularPagos();
+            document.getElementById('modal-pago').classList.remove('hidden');
+        }
+        window.cerrarModalPago = function() { document.getElementById('modal-pago').classList.add('hidden'); }
+
+        window.calcularPagos = function() {
+            const usd = parseFloat(document.getElementById('inp-usd').value) || 0; const binance = parseFloat(document.getElementById('inp-binance').value) || 0; const debitoBS = parseFloat(document.getElementById('inp-debito').value) || 0; const transBS = parseFloat(document.getElementById('inp-trans').value) || 0; const bsEfectivo = parseFloat(document.getElementById('inp-bs').value) || 0;
+            const totalBSPagado = debitoBS + transBS + bsEfectivo; const bSToUsd = totalBSPagado / config.tasa;
+            const totalPagadoUSD = usd + binance + bSToUsd; const diferenciaUSD = totalPagadoUSD - totalActualUSD;
+            const panel = document.getElementById('panel-estado-pago'); const label = document.getElementById('label-estado-pago'); const mUsd = document.getElementById('monto-estado-usd'); const mBs = document.getElementById('monto-estado-bs'); const btn = document.getElementById('btn-confirmar-pago');
+
+            if (diferenciaUSD >= -0.01) { 
+                panel.className = "p-4 rounded-xl mb-4 bg-emerald-50 border border-emerald-200 text-center transition-colors"; label.className = "text-sm font-bold text-emerald-600 uppercase"; label.innerText = diferenciaUSD > 0.01 ? "Vuelto a entregar:" : "Pago Exacto";
+                mUsd.className = "text-2xl font-black text-emerald-700"; mBs.className = "text-sm font-bold text-emerald-500";
+                mUsd.innerText = `$${Math.abs(diferenciaUSD).toFixed(2)}`; mBs.innerText = `Bs. ${(Math.abs(diferenciaUSD) * config.tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})}`; btn.disabled = false;
+            } else { 
+                panel.className = "p-4 rounded-xl mb-4 bg-orange-50 border border-orange-200 text-center transition-colors"; label.className = "text-sm font-bold text-orange-600 uppercase"; label.innerText = "Resta por cobrar:";
+                mUsd.className = "text-2xl font-black text-orange-700"; mBs.className = "text-sm font-bold text-orange-500";
+                mUsd.innerText = `$${Math.abs(diferenciaUSD).toFixed(2)}`; mBs.innerText = `Bs. ${(Math.abs(diferenciaUSD) * config.tasa).toLocaleString('es-VE', {minimumFractionDigits: 2})}`; btn.disabled = true;
+            }
+        }
+
+        window.confirmarVentaFinal = async function() {
+            window.guardarClienteAutomatico();
+            loader.classList.remove('hidden'); // Mostrar procesando en la nube
+
+            // 1. Descontar Stock en Firebase (Peticiones asíncronas)
+            for (let iCart of carrito) {
+                const orig = inventario.find(p => p.id === iCart.id);
+                if(orig) {
+                    const nuevoStock = orig.existencia - iCart.cantidad;
+                    await updateDoc(doc(db, "inventario", iCart.id), { existencia: nuevoStock });
+                }
+            }
+
+            // 2. Guardar la Venta en Firebase
+            const usd = parseFloat(document.getElementById('inp-usd').value) || 0; const binance = parseFloat(document.getElementById('inp-binance').value) || 0; const debitoBS = parseFloat(document.getElementById('inp-debito').value) || 0; const transBS = parseFloat(document.getElementById('inp-trans').value) || 0; const bsEfectivo = parseFloat(document.getElementById('inp-bs').value) || 0;
+            const venta = {
+                fechaHora: new Date().toLocaleString('es-VE'),
+                idSesion: sesionA3.idSesion, // Vital para el Cierre Z
+                cajero: sesionA3.cajero,
+                cliente: document.getElementById('cliente-nombre').value.trim() || 'GENÉRICO',
+                totalUSD: totalActualUSD,
+                pagosDesglosados: { usdEfec: usd, binance: binance, debitoBS: debitoBS, transBS: transBS, bsEfectivo: bsEfectivo }
+            };
+            
+            await addDoc(collection(db, "ventas"), venta);
+
+            loader.classList.add('hidden');
+            window.cerrarModalPago(); window.limpiarCarrito(); 
+            alert(`✅ ¡Venta Procesada y Guardada en la Nube!`);
+        }
+
+        // --- CIERRE Z INTELIGENTE CLOUD ---
+        let totalGeneralPDF = 0;
+        let facturasTurnoCount = 0;
+
+        window.abrirResumen = function() {
+            document.getElementById('fecha-resumen').innerText = `Abierto desde: ${sesionA3.fechaApertura}`;
+            document.getElementById('res-fondo').innerText = `$${sesionA3.fondoUSD.toFixed(2)} / Bs. ${sesionA3.fondoBS.toLocaleString('es-VE', {minimumFractionDigits: 2})}`;
+
+            let t_usd = 0, t_bin = 0, t_deb_bs = 0, t_tra_bs = 0, t_bs_ef = 0;
+            
+            // FILTRO INTELIGENTE: Solo suma las ventas globales que correspondan a ESTE turno de caja específico
+            const ventasTurno = ventasGlobales.filter(v => v.idSesion === sesionA3.idSesion);
+            facturasTurnoCount = ventasTurno.length;
+
+            ventasTurno.forEach(v => {
+                if (v.pagosDesglosados) {
+                    t_usd += parseFloat(v.pagosDesglosados.usdEfec) || 0; t_bin += parseFloat(v.pagosDesglosados.binance) || 0; t_deb_bs += parseFloat(v.pagosDesglosados.debitoBS) || 0; t_tra_bs += parseFloat(v.pagosDesglosados.transBS) || 0; t_bs_ef += parseFloat(v.pagosDesglosados.bsEfectivo) || 0;
+                }
+            });
+
+            const t = config.tasa > 0 ? config.tasa : 1;
+            document.getElementById('res-usd').innerText = `$${t_usd.toFixed(2)}`; document.getElementById('res-binance').innerText = `$${t_bin.toFixed(2)} USDT`;
+            document.getElementById('res-deb-bs').innerText = `Bs. ${t_deb_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`; document.getElementById('res-deb-usd').innerText = `Ref: $${(t_deb_bs/t).toFixed(2)}`;
+            document.getElementById('res-trans-bs').innerText = `Bs. ${t_tra_bs.toLocaleString('es-VE', {minimumFractionDigits: 2})}`; document.getElementById('res-trans-usd').innerText = `Ref: $${(t_tra_bs/t).toFixed(2)}`;
+            document.getElementById('res-bs-efec-bs').innerText = `Bs. ${t_bs_ef.toLocaleString('es-VE', {minimumFractionDigits: 2})}`; document.getElementById('res-bs-efec-usd').innerText = `Ref: $${(t_bs_ef/t).toFixed(2)}`;
+
+            totalGeneralPDF = t_usd + t_bin + (t_deb_bs/t) + (t_tra_bs/t) + (t_bs_ef/t);
+            document.getElementById('res-total-general').innerText = `$${totalGeneralPDF.toFixed(2)}`;
+            document.getElementById('modal-resumen').classList.remove('hidden');
+        }
+        window.cerrarResumen = function() { document.getElementById('modal-resumen').classList.add('hidden'); }
+
+        window.ejecutarCierreZ = function() {
+            if(!confirm("⚠️ ¿Desea emitir el CIERRE Z?\nEsto descargará el PDF y cerrará su sesión. Las ventas quedarán guardadas en Firebase.")) return;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ format: [80, 200] });
+            
+            let y = 10;
+            doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("A3Sinergy CLOUD", 40, y, { align: "center" }); y += 6;
+            doc.setFontSize(10); doc.text("REPORTE DE CIERRE Z", 40, y, { align: "center" }); y += 8;
+
+            doc.setFontSize(8); doc.setFont("helvetica", "normal");
+            doc.text(`Cajero: ${sesionA3.cajero}`, 5, y); y+=5;
+            doc.text(`Apertura: ${sesionA3.fechaApertura}`, 5, y); y+=5;
+            doc.text(`Cierre: ${new Date().toLocaleString('es-VE')}`, 5, y); y+=5;
+            doc.text(`Tasa aplicada: Bs. ${config.tasa.toFixed(2)}`, 5, y); y+=8;
+
+            doc.text("----------------------------------------------------------------", 40, y, { align: "center" }); y+=5;
+            doc.setFont("helvetica", "bold"); doc.text("FONDO DE CAJA", 5, y); y+=5;
+            doc.setFont("helvetica", "normal");
+            doc.text(`Efectivo USD: $${sesionA3.fondoUSD.toFixed(2)}`, 5, y); y+=4;
+            doc.text(`Efectivo BS: Bs. ${sesionA3.fondoBS.toLocaleString('es-VE', {minimumFractionDigits:2})}`, 5, y); y+=6;
+
+            doc.text("----------------------------------------------------------------", 40, y, { align: "center" }); y+=5;
+            doc.setFont("helvetica", "bold"); doc.text("VENTAS DEL TURNO", 5, y); y+=5;
+            doc.setFont("helvetica", "normal");
+            doc.text(`Total Facturas: ${facturasTurnoCount}`, 5, y); y+=4;
+            
+            doc.text(`Efectivo USD: ${document.getElementById('res-usd').innerText}`, 5, y); y+=4;
+            doc.text(`Binance: ${document.getElementById('res-binance').innerText}`, 5, y); y+=4;
+            doc.text(`Debito BS: ${document.getElementById('res-deb-bs').innerText}`, 5, y); y+=4;
+            doc.text(`Transf BS: ${document.getElementById('res-trans-bs').innerText}`, 5, y); y+=4;
+            doc.text(`Efectivo BS: ${document.getElementById('res-bs-efec-bs').innerText}`, 5, y); y+=6;
+
+            doc.text("----------------------------------------------------------------", 40, y, { align: "center" }); y+=6;
+            doc.setFontSize(10); doc.setFont("helvetica", "bold");
+            doc.text(`TOTAL INGRESOS: $${totalGeneralPDF.toFixed(2)}`, 5, y);
+
+            doc.save(`CierreZ_${sesionA3.cajero}_${Date.now()}.pdf`);
+
+            // Solo cerramos la sesión local, NO borramos las ventas de Firebase
+            sesionA3.activa = false; localStorage.setItem('a3_sesion', JSON.stringify(sesionA3));
+            alert("✅ Cierre Z emitido exitosamente. Sesión finalizada.");
+            window.location.reload();
+        }
+
+        // Arranque Inicial
+        window.checkLogin();
+    </script>
+</body>
+</html>
