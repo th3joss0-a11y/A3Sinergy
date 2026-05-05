@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A3Sinergy - Panel de Administración</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.26, 0.53, 0.74, 1.48); }
+        @keyframes pop { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-slate-100 flex h-screen overflow-hidden text-slate-800 relative">
+
+    <div id="loader-nube" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-[200] animate-pulse hidden">
+        Sincronizando Sistema...
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MOTOR GLOBAL DE MODALES CONTEXTUALES       -->
+    <!-- ========================================== -->
+    <div id="modal-custom-global" class="hidden fixed inset-0 bg-slate-900/80 z-[400] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 animate-pop" id="modal-global-border">
+            <div id="modal-global-icon" class="text-6xl mb-4">⚠️</div>
+            <h3 id="modal-global-title" class="text-xl font-black text-slate-800 mb-2">Título</h3>
+            <p id="modal-global-message" class="text-slate-500 font-medium mb-6">Mensaje</p>
+            <input type="text" id="modal-global-input" class="hidden w-full border-2 p-3 rounded-xl font-bold outline-none text-center mb-6" placeholder="Escribe aquí...">
+            <div id="modal-global-buttons" class="flex gap-2 justify-center">
+                <button id="btn-global-cancel" class="hidden flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition uppercase">Cancelar</button>
+                <button id="btn-global-ok" class="flex-1 text-white py-3 rounded-xl font-black shadow-lg transition uppercase">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menú Contextual para Usuarios -->
+    <div id="menu-contextual-usuario" class="hidden fixed bg-white shadow-2xl rounded-xl border border-slate-200 z-[300] py-2 w-48 text-sm overflow-hidden">
+        <button onclick="window.abrirModalAsignarSede()" class="w-full text-left px-4 py-3 hover:bg-blue-50 text-slate-700 font-bold flex items-center gap-3"><span class="text-lg">🏢</span> Asignar Sede</button>
+    </div>
+
+    <!-- MODAL ASIGNAR SEDE A USUARIO -->
+    <div id="modal-asignar-sede" class="fixed inset-0 bg-slate-900/80 z-[150] hidden flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-pop">
+            <div class="bg-slate-900 p-4 flex justify-between items-center text-white"><h2 class="font-bold uppercase tracking-wide">Asignar Sede</h2><button onclick="window.cerrarModalAsignarSede()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button></div>
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-500">Selecciona la sede predeterminada para este usuario.</p>
+                <select id="select-sede-usuario" class="w-full border-2 p-3 rounded-lg bg-slate-50 font-bold outline-blue-500"></select>
+                <div class="flex gap-4 mt-4">
+                    <button onclick="window.cerrarModalAsignarSede()" class="w-1/2 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition uppercase">Cancelar</button>
+                    <button onclick="window.guardarSedeUsuario()" class="w-1/2 bg-blue-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-blue-700 transition uppercase">Asignar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE LOGIN ADMIN -->
+    <div id="modal-login" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center border-t-8 border-slate-800 animate-pop">
+            <div class="text-4xl font-black mb-2"><span class="text-blue-600">A3</span>Sinergy</div>
+            <p class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-8 border-b pb-4">Panel de Administración</p>
+            <div class="space-y-4">
+                <div class="text-left"><label class="text-xs font-bold text-slate-500 uppercase">Usuario Admin</label><input type="text" id="login-usuario" placeholder="Ej: admin" class="w-full border-2 border-slate-200 p-3 rounded-xl font-bold outline-none focus:border-slate-800 bg-slate-50"></div>
+                <div class="text-left"><label class="text-xs font-bold text-slate-500 uppercase">Contraseña Privada</label><input type="password" id="login-clave" placeholder="****" class="w-full border-2 border-slate-200 p-3 rounded-xl font-black text-center tracking-widest text-2xl outline-none focus:border-slate-800"></div>
+                <button onclick="window.verificarLogin()" class="w-full bg-slate-800 text-white p-4 rounded-xl font-black text-lg shadow-lg hover:bg-slate-900 transition mt-4 uppercase tracking-widest">INGRESAR AL CORE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Lateral -->
+    <div class="w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-40 relative">
+        <div class="p-6 border-b border-slate-800 text-center">
+            <div class="text-3xl font-black mb-1"><span class="text-blue-500">A3</span>Sinergy</div>
+            <span class="text-[10px] bg-red-600 px-2 py-1 rounded font-black tracking-widest uppercase shadow shadow-red-500/50">Admin Center</span>
+        </div>
+        
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 ml-2">Módulos Internos</p>
+            <button onclick="window.cambiarTab('dashboard')" id="btn-tab-dashboard" class="w-full flex items-center gap-3 text-left p-3 rounded-lg bg-blue-600 text-white font-bold transition">
+                <span class="text-xl">📊</span> Dashboard
+            </button>
+            <button onclick="window.cambiarTab('sedes')" id="btn-tab-sedes" class="w-full flex items-center gap-3 text-left p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition">
+                <span class="text-xl">🏢</span> Gestión de Sedes
+            </button>
+            <button onclick="window.cambiarTab('movimientos')" id="btn-tab-movimientos" class="w-full flex items-center gap-3 text-left p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition">
+                <span class="text-xl">📦</span> Stock y Traslados
+            </button>
+            <button onclick="window.cambiarTab('clientes')" id="btn-tab-clientes" class="w-full flex items-center gap-3 text-left p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition">
+                <span class="text-xl">🤝</span> Base de Clientes
+            </button>
+            <button onclick="window.cambiarTab('usuarios')" id="btn-tab-usuarios" class="w-full flex items-center gap-3 text-left p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition">
+                <span class="text-xl">👥</span> Accesos de Sistema
+            </button>
+            <button onclick="window.cambiarTab('config')" id="btn-tab-config" class="w-full flex items-center gap-3 text-left p-3 rounded-lg text-emerald-400 hover:bg-slate-800 hover:text-emerald-300 font-bold transition border border-slate-700 mt-2">
+                <span class="text-xl">⚙️</span> Configuración
+            </button>
+
+            <div class="border-t border-slate-800 my-4"></div>
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 ml-2">Accesos Directos</p>
+            
+            <button onclick="window.saltarModulo('inventario')" class="w-full flex items-center gap-3 text-left p-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition">
+                <span class="text-xl">📦</span> Ir al Inventario
+            </button>
+            <button onclick="window.saltarModulo('pos')" class="w-full flex items-center gap-3 text-left p-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition mt-2">
+                <span class="text-xl">🛒</span> Ir a Caja (POS)
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-950">
+            <p class="text-xs text-slate-400 font-bold flex items-center gap-2">👤 <span id="label-admin" class="text-blue-400 uppercase">---</span></p>
+            <button onclick="window.cerrarSesion()" class="text-[10px] text-red-500 hover:text-red-400 mt-2 font-bold uppercase tracking-widest">Cerrar Sesión Global</button>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="flex-1 flex flex-col overflow-y-auto bg-slate-50 relative">
+        <header class="bg-white shadow-sm p-6 flex justify-between items-center border-b border-slate-200 sticky top-0 z-10">
+            <h1 id="titulo-seccion" class="text-2xl font-black text-slate-800 uppercase tracking-tighter">Resumen Global</h1>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span> <span class="text-xs font-bold text-slate-500 uppercase">Conexión Segura</span></div>
+        </header>
+
+        <main class="p-8">
+            
+            <!-- VISTA 1: DASHBOARD -->
+            <div id="vista-dashboard" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 text-8xl opacity-5">💰</div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Ventas Históricas</p>
+                        <h2 id="dash-ventas-usd" class="text-3xl font-black text-blue-600">$0.00</h2>
+                        <p id="dash-ventas-bs" class="text-sm font-bold text-slate-400">Bs. 0.00</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 text-8xl opacity-5">📦</div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Patrimonio en Inventario</p>
+                        <h2 id="dash-inv-usd" class="text-3xl font-black text-slate-800">$0.00</h2>
+                        <p id="dash-inv-items" class="text-sm font-bold text-slate-400">0 items registrados</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 text-8xl opacity-5">🧾</div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Facturas Procesadas</p>
+                        <h2 id="dash-facturas" class="text-3xl font-black text-emerald-600">0</h2>
+                        <p id="dash-anuladas" class="text-sm font-bold text-red-400">0 Anuladas</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-black text-slate-700 uppercase mb-4 flex justify-between items-center">
+                        Flujo de Ingresos (USD) <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded">Últimas facturas</span>
+                    </h3>
+                    <div class="w-full h-72"><canvas id="graficaVentas"></canvas></div>
+                </div>
+            </div>
+
+            <!-- VISTA: SEDES -->
+            <div id="vista-sedes" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-black text-slate-700 uppercase mb-4 flex items-center gap-2">🏢 Registrar Nueva Sede / Sucursal</h3>
+                    <div class="flex gap-4 items-end">
+                        <div class="flex-1"><label class="text-[10px] font-bold text-slate-500 uppercase">Nombre de la Sede</label><input type="text" id="nueva-sede" placeholder="Ej: Sucursal Centro" class="w-full border-2 p-3 rounded-lg bg-slate-50 outline-blue-500 font-bold"></div>
+                        <button onclick="window.agregarSede()" class="bg-slate-800 text-white px-8 py-3 rounded-lg font-black hover:bg-slate-900 transition shadow">AÑADIR</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <h3 class="font-black text-slate-700 uppercase mb-4">Sedes Activas y Gestión</h3>
+                    <div id="grid-sedes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- VISTA: MOVIMIENTOS Y CARGAS -->
+            <div id="vista-movimientos" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Formulario de CARGA -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md border-t-4 border-emerald-500 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-black text-slate-800 uppercase mb-2 text-xl flex items-center gap-2">📥 Ingresar</h3>
+                            <p class="text-xs text-slate-500 mb-6">Sumar nueva mercancía al sistema en una sede.</p>
+                            <div class="space-y-4">
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase">Producto</label><input type="text" id="mov-cargar-prod" list="lista-nombres-productos" placeholder="Buscar..." class="w-full border-2 p-2 rounded-lg bg-slate-50 font-bold outline-emerald-500 text-sm"></div>
+                                <div class="flex gap-2">
+                                    <div class="w-2/3"><label class="text-[10px] font-bold text-slate-500 uppercase">Destino</label><select id="mov-cargar-sede" class="w-full border-2 p-2 rounded-lg bg-slate-50 font-bold outline-emerald-500 select-sedes text-sm"></select></div>
+                                    <div class="w-1/3"><label class="text-[10px] font-bold text-slate-500 uppercase">Cant</label><input type="number" id="mov-cargar-cant" placeholder="0" min="1" class="w-full border-2 p-2 rounded-lg bg-slate-50 font-black text-center outline-emerald-500 text-emerald-700"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="window.procesarCarga()" class="w-full bg-emerald-500 text-white p-3 rounded-lg font-black shadow hover:bg-emerald-600 transition uppercase mt-6">Cargar Stock</button>
+                    </div>
+                    <!-- Formulario de TRANSFERENCIA -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md border-t-4 border-purple-500 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-black text-slate-800 uppercase mb-2 text-xl flex items-center gap-2">🔀 Transferir</h3>
+                            <p class="text-xs text-slate-500 mb-6">Mover mercancía de una sucursal a otra.</p>
+                            <div class="space-y-4">
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase">Producto</label><input type="text" id="mov-trans-prod" list="lista-nombres-productos" placeholder="Buscar..." class="w-full border-2 p-2 rounded-lg bg-slate-50 font-bold outline-purple-500 text-sm"></div>
+                                <div class="flex gap-2">
+                                    <div class="w-full"><label class="text-[10px] font-bold text-slate-500 uppercase">Desde</label><select id="mov-trans-origen" class="w-full border-2 p-2 rounded-lg bg-slate-50 font-bold outline-purple-500 select-sedes text-xs"></select></div>
+                                    <div class="w-full"><label class="text-[10px] font-bold text-slate-500 uppercase">Hacia</label><select id="mov-trans-destino" class="w-full border-2 p-2 rounded-lg bg-slate-50 font-bold outline-purple-500 select-sedes text-xs"></select></div>
+                                </div>
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase">Cantidad</label><input type="number" id="mov-trans-cant" placeholder="0" min="1" class="w-full border-2 p-2 rounded-lg bg-slate-50 font-black text-center outline-purple-500 text-purple-700"></div>
+                            </div>
+                        </div>
+                        <button onclick="window.procesarTransferencia()" class="w-full bg-purple-600 text-white p-3 rounded-lg font-black shadow hover:bg-purple-700 transition uppercase mt-4">Ejecutar</button>
+                    </div>
+                    <!-- Formulario de DESCARGO -->
+                    <div class="bg-white p-6 rounded-2xl shadow-md border-t-4 border-red-500 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-black text-slate-800 uppercase mb-2 text-xl flex items-center gap-2">📤 Descargar</h3>
+                            <p class="text-xs text-slate-500 mb-6">Retirar stock (daños, mermas, ajustes).</p>
+                            <div class="space-y-4">
+                                <div><label class="text-[10px] font-bold text-slate-500 uppercase">Producto</label><input type="text" id="mov-desc-prod" list="lista-nombres-productos" placeholder="Buscar..." class="w-full border-2 p-2 rounded-lg bg-slate-50 font-bold outline-red-500 text-sm"></div>
+                                <div class="flex gap-2">
+                                    <div class="w-2/3"><label class="text-[10px] font-bold text-slate-500 uppercase">Retirar de Sede</label><select id="mov-desc-sede" class="w-full border-2 p-2 rounded-lg bg-slate-50 font-bold outline-red-500 select-sedes text-sm"></select></div>
+                                    <div class="w-1/3"><label class="text-[10px] font-bold text-slate-500 uppercase">Cant</label><input type="number" id="mov-desc-cant" placeholder="0" min="1" class="w-full border-2 p-2 rounded-lg bg-slate-50 font-black text-center outline-red-500 text-red-700"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="window.procesarDescargo()" class="w-full bg-red-500 text-white p-3 rounded-lg font-black shadow hover:bg-red-600 transition uppercase mt-6">Aplicar Descargo</button>
+                    </div>
+                </div>
+
+                <!-- TABLA VISOR DE STOCK POR SEDE -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+                    <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+                        <h3 class="font-black text-slate-700 uppercase flex items-center gap-2">📊 Visor de Inventario Global</h3>
+                        <input type="text" id="buscador-stock" onkeyup="window.renderizarTablaStock()" placeholder="🔍 Buscar artículo o código..." class="border-2 p-2 rounded-lg bg-white outline-blue-500 font-bold text-sm w-1/3">
+                    </div>
+                    <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+                        <table class="w-full text-left text-sm relative">
+                            <thead class="bg-slate-900 text-white text-[10px] uppercase sticky top-0 z-10">
+                                <tr><th class="p-4">Código / Ref</th><th class="p-4">Producto</th><th class="p-4">Distribución por Sede</th><th class="p-4 text-center border-l border-slate-700">Total Global</th></tr>
+                            </thead>
+                            <tbody id="tabla-stock-admin" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <datalist id="lista-nombres-productos"></datalist>
+            </div>
+
+            <!-- VISTA: CLIENTES -->
+            <div id="vista-clientes" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+                    <h3 class="font-black text-slate-700 uppercase flex items-center gap-2">🤝 Base de Datos de Clientes</h3>
+                    <input type="text" id="buscador-clientes" onkeyup="window.renderizarTablaClientes()" placeholder="🔍 Buscar documento o nombre..." class="border-2 p-2 rounded-lg bg-slate-50 outline-blue-500 font-bold text-sm w-1/3">
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <table class="w-full text-left text-sm"><thead class="bg-slate-900 text-white text-[10px] uppercase"><tr><th class="p-4">Documento (RIF/Cédula)</th><th class="p-4">Razón Social / Nombre</th><th class="p-4 text-center">Acciones</th></tr></thead><tbody id="tabla-clientes" class="divide-y divide-slate-100 bg-white"></tbody></table>
+                </div>
+            </div>
+
+            <!-- VISTA: USUARIOS -->
+            <div id="vista-usuarios" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-black text-slate-700 uppercase mb-4 flex items-center gap-2">🔐 Crear Nuevo Acceso</h3>
+                    <div class="flex gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 items-end">
+                        <div class="flex-1"><label class="text-[10px] font-bold text-slate-500 uppercase">Usuario</label><input type="text" id="nu-user" class="w-full border-2 p-2 rounded-lg bg-white outline-blue-500 font-bold text-sm"></div>
+                        <div class="flex-1"><label class="text-[10px] font-bold text-slate-500 uppercase">Contraseña</label><input type="text" id="nu-pass" class="w-full border-2 p-2 rounded-lg bg-white outline-blue-500 font-bold text-sm"></div>
+                        <div class="w-1/4"><label class="text-[10px] font-bold text-slate-500 uppercase">Privilegios</label><select id="nu-rol" class="w-full border-2 p-2 rounded-lg bg-white font-black outline-blue-500 cursor-pointer text-sm"><option value="cajero">CAJERO</option><option value="admin">ADMIN</option></select></div>
+                        <button onclick="window.crearUsuario()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-black hover:bg-blue-700 transition shadow">REGISTRAR</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <p class="text-xs text-slate-500 p-4 pb-0">💡 <b>Tip:</b> Haz <strong class="text-blue-600">click derecho</strong> sobre un usuario para asignarle una Sede predeterminada.</p>
+                    <table class="w-full text-left text-sm mt-4"><thead class="bg-slate-900 text-white text-[10px] uppercase"><tr><th class="p-4">Usuario / Sede</th><th class="p-4">Contraseña</th><th class="p-4">Rol</th><th class="p-4 text-center">Gestión</th></tr></thead><tbody id="tabla-usuarios" class="divide-y divide-slate-100 bg-white"></tbody></table>
+                </div>
+            </div>
+
+            <!-- VISTA: CONFIGURACIÓN GLOBAL -->
+            <div id="vista-config" class="hidden space-y-6">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-black text-slate-800 uppercase mb-2 flex items-center gap-2 text-2xl">⚙️ Parámetros Financieros Globales</h3>
+                    <p class="text-sm text-slate-500 mb-8">Estos valores afectan directamente el cálculo de precios en el Inventario y en todas las ventas del Punto de Venta (POS).</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div class="bg-emerald-50 p-6 rounded-2xl border border-emerald-200 shadow-inner">
+                            <label class="text-xs font-bold text-emerald-800 uppercase mb-2 block">Tasa BCV Oficial (Bs/$)</label>
+                            <input type="number" id="admin-tasa" step="0.01" class="w-full border-2 p-4 rounded-xl bg-white font-black text-emerald-700 outline-emerald-500 text-2xl text-center shadow-sm">
+                        </div>
+                        <div class="bg-blue-50 p-6 rounded-2xl border border-blue-200 shadow-inner">
+                            <label class="text-xs font-bold text-blue-800 uppercase mb-2 block">Impuesto IVA Global (%)</label>
+                            <input type="number" id="admin-iva" step="0.1" class="w-full border-2 p-4 rounded-xl bg-white font-black text-blue-700 outline-blue-500 text-2xl text-center shadow-sm">
+                        </div>
+                    </div>
+
+                    <button onclick="window.guardarConfigAdmin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl hover:bg-slate-800 transition uppercase tracking-widest text-lg">Guardar Configuración General</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL EDICIÓN CLIENTE -->
+    <div id="modal-editar-cliente" class="fixed inset-0 bg-slate-900/80 z-[150] hidden flex justify-center items-center p-4 backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-pop"><div class="bg-slate-900 p-4 flex justify-between items-center text-white"><h2 class="font-bold uppercase tracking-wide">Editar Cliente</h2><button onclick="window.cerrarModalCliente()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button></div><div class="p-6 space-y-4"><input type="hidden" id="edit-cli-id"><div><label class="text-[10px] font-bold text-slate-500 uppercase">Documento / RIF</label><input type="text" id="edit-cli-rif" class="w-full border-2 p-2 rounded-lg bg-slate-50 outline-blue-500 font-bold uppercase"></div><div><label class="text-[10px] font-bold text-slate-500 uppercase">Razón Social</label><input type="text" id="edit-cli-nombre" class="w-full border-2 p-2 rounded-lg bg-slate-50 outline-blue-500 font-bold uppercase"></div><div class="flex gap-4 mt-4"><button onclick="window.cerrarModalCliente()" class="w-1/3 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition uppercase">Cancelar</button><button onclick="window.guardarEdicionCliente()" class="w-2/3 bg-blue-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-blue-700 transition uppercase">Guardar</button></div></div></div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyBydRzHt9Ja3RYvBbXO7n6Cv6pyJqwIUbQ", authDomain: "sinergy-d78d0.firebaseapp.com", databaseURL: "https://sinergy-d78d0-default-rtdb.firebaseio.com", projectId: "sinergy-d78d0", storageBucket: "sinergy-d78d0.firebasestorage.app", messagingSenderId: "399343343582", appId: "1:399343343582:web:29c686fd7e229e8f20ef4f", measurementId: "G-H1DJ1KZBJJ" };
+        const app = initializeApp(firebaseConfig); const db = getFirestore(app);
+
+        let usuariosDB = []; let ventasGlobales = []; let inventarioGlobal = []; let clientesDB = []; let sedesGlobales = ["Principal"];
+        let configGlobal = { tasa: 36.50, iva: 16 }; let sesionAdmin = JSON.parse(localStorage.getItem('a3_sesion_admin')) || null;
+        let usuarioSeleccionadoId = null;
+        const loader = document.getElementById('loader-nube'); let chartInstancia = null;
+
+        // ==========================================
+        // LÓGICA DEL MOTOR DE MODALES UNIVERSALES
+        // ==========================================
+        let globalCallbackOk = null; let globalCallbackCancel = null;
+        window.mostrarModalGlobal = function(tipo, titulo, mensaje, valorPrompt = '', callbackOk = null, callbackCancel = null) {
+            const m = document.getElementById('modal-custom-global'); const b = document.getElementById('modal-global-border'); const i = document.getElementById('modal-global-icon'); const t = document.getElementById('modal-global-title'); const msg = document.getElementById('modal-global-message'); const inp = document.getElementById('modal-global-input'); const btnC = document.getElementById('btn-global-cancel'); const btnO = document.getElementById('btn-global-ok');
+            t.innerText = titulo; msg.innerHTML = mensaje.replace(/\n/g, '<br>'); globalCallbackOk = callbackOk; globalCallbackCancel = callbackCancel;
+            inp.classList.add('hidden'); btnC.classList.add('hidden'); inp.value = valorPrompt; inp.classList.remove('border-blue-500', 'focus:border-blue-500');
+
+            if (tipo === 'error') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-red-500 animate-pop"; i.innerText="❌"; btnO.className="w-full bg-red-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-red-700 transition uppercase"; }
+            else if (tipo === 'exito') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-emerald-500 animate-pop"; i.innerText="✅"; btnO.className="w-full bg-emerald-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-emerald-700 transition uppercase"; }
+            else if (tipo === 'confirmacion') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-orange-500 animate-pop"; i.innerText="⚠️"; btnC.classList.remove('hidden'); btnO.className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black shadow-lg hover:bg-orange-600 transition uppercase"; }
+            else if (tipo === 'prompt') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-blue-500 animate-pop"; i.innerText="✏️"; btnC.classList.remove('hidden'); inp.classList.remove('hidden'); inp.classList.add('focus:border-blue-500'); btnO.className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-blue-700 transition uppercase"; setTimeout(()=>inp.focus(), 100); }
+            m.classList.remove('hidden');
+        }
+
+        document.getElementById('btn-global-ok').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(globalCallbackOk) { const isPrompt = !document.getElementById('modal-global-input').classList.contains('hidden'); if(isPrompt) globalCallbackOk(document.getElementById('modal-global-input').value); else globalCallbackOk(); } }
+        document.getElementById('btn-global-cancel').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(globalCallbackCancel) globalCallbackCancel(); }
+        document.addEventListener('click', () => { const mUser = document.getElementById('menu-contextual-usuario'); if(mUser) mUser.classList.add('hidden'); });
+
+        // --- SISTEMA DE NAVEGACIÓN ---
+        window.cambiarTab = function(tab) {
+            ['dashboard', 'sedes', 'movimientos', 'clientes', 'usuarios', 'config'].forEach(t => { const el = document.getElementById(`vista-${t}`); if(el) el.classList.add('hidden'); const btn = document.getElementById(`btn-tab-${t}`); if(btn) btn.className = "w-full flex items-center gap-3 text-left p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white font-bold transition"; });
+            document.getElementById(`vista-${tab}`).classList.remove('hidden'); document.getElementById(`btn-tab-${tab}`).className = "w-full flex items-center gap-3 text-left p-3 rounded-lg bg-blue-600 text-white font-bold transition";
+            const titulos = { 'dashboard': 'Resumen Global', 'sedes': 'Control de Sedes', 'movimientos': 'Gestión de Stock', 'clientes': 'Base de Clientes', 'usuarios': 'Accesos del Sistema', 'config': 'Ajustes del Sistema' };
+            document.getElementById('titulo-seccion').innerText = titulos[tab];
+            if(tab === 'dashboard') window.actualizarDashboard(); if(tab === 'clientes') window.renderizarTablaClientes(); if(tab === 'movimientos') window.renderizarTablaStock();
+        }
+
+        // --- CONFIGURACIÓN GLOBAL ---
+        onSnapshot(doc(db, "sistema", "config"), (docS) => { 
+            if(docS.exists()) {
+                configGlobal = docS.data(); 
+                if(document.getElementById('admin-tasa')) document.getElementById('admin-tasa').value = configGlobal.tasa;
+                if(document.getElementById('admin-iva')) document.getElementById('admin-iva').value = configGlobal.iva;
+            }
+            if(sesionAdmin) window.actualizarDashboard(); 
+        });
+
+        window.guardarConfigAdmin = async function() {
+            loader.classList.remove('hidden');
+            const nuevaConfig = { 
+                tasa: parseFloat(document.getElementById('admin-tasa').value) || 0, 
+                iva: parseFloat(document.getElementById('admin-iva').value) || 0
+            }; 
+            await setDoc(doc(db, "sistema", "config"), nuevaConfig); 
+            loader.classList.add('hidden');
+            window.mostrarModalGlobal('exito', 'Configuración Guardada', 'Las variables financieras se han actualizado.\nLos precios en Inventario y Caja ya reflejan los cambios.');
+        }
+
+        // --- LOGIN Y RUTAS ---
+        onSnapshot(collection(db, "usuarios"), (snapshot) => { usuariosDB = []; snapshot.forEach((doc) => usuariosDB.push({ id: doc.id, ...doc.data() })); if(usuariosDB.length === 0) setDoc(doc(db, "usuarios", "admin_master"), { username: "admin", password: "123", role: "admin", sede: "Principal" }); window.renderizarTablaUsuarios(); });
+        window.verificarLogin = function() { const user = document.getElementById('login-usuario').value.trim().toLowerCase(); const pass = document.getElementById('login-clave').value; const usuarioValido = usuariosDB.find(u => u.username.toLowerCase() === user && u.password === pass); if (usuarioValido) { if (usuarioValido.role !== 'admin') { window.mostrarModalGlobal('error', 'Acceso Denegado', 'No posees privilegios de Administrador.'); document.getElementById('login-clave').value = ''; return; } sesionAdmin = { activa: true, username: usuarioValido.username, role: usuarioValido.role }; localStorage.setItem('a3_sesion_admin', JSON.stringify(sesionAdmin)); document.getElementById('modal-login').classList.add('hidden'); document.getElementById('label-admin').innerText = sesionAdmin.username; } else { window.mostrarModalGlobal('error', 'Fallo de Autenticación', 'Credenciales incorrectas.'); document.getElementById('login-clave').value = ''; } }
+        window.checkLogin = function() { if (!sesionAdmin || !sesionAdmin.activa) { document.getElementById('modal-login').classList.remove('hidden'); } else { document.getElementById('modal-login').classList.add('hidden'); document.getElementById('label-admin').innerText = sesionAdmin.username; } }
+        window.cerrarSesion = function() { sesionAdmin = null; localStorage.removeItem('a3_sesion_admin'); window.location.reload(); }
+        window.saltarModulo = function(modulo) { if(modulo === 'inventario') { localStorage.setItem('a3_pre_auth_inv', JSON.stringify({ username: sesionAdmin.username, role: sesionAdmin.role })); window.location.href = 'Sinergy.html'; } else { localStorage.setItem('a3_pre_auth_pos', JSON.stringify({ username: sesionAdmin.username, role: sesionAdmin.role })); window.location.href = 'Sin-POS.html'; } }
+
+        // --- GESTIÓN DE SEDES ---
+        onSnapshot(doc(db, "sistema", "sedes"), (documento) => { if (documento.exists()) { sedesGlobales = documento.data().lista || ["Principal"]; window.renderizarSedes(); window.actualizarSelectSedes(); } else { setDoc(doc(db, "sistema", "sedes"), { lista: ["Principal"] }); } if(sesionAdmin) window.renderizarTablaStock(); });
+        window.agregarSede = async function() { let ns = document.getElementById('nueva-sede').value.trim(); if(ns && !sedesGlobales.includes(ns)) { loader.classList.remove('hidden'); const nuevaLista = [...sedesGlobales, ns]; await setDoc(doc(db, "sistema", "sedes"), { lista: nuevaLista }); document.getElementById('nueva-sede').value = ''; loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Sede Creada', `La sucursal ${ns} se añadió al sistema.`); } else { window.mostrarModalGlobal('error', 'Acción Denegada', 'El nombre está vacío o ya existe.'); } }
+        window.renombrarSede = function(idx) { const oldName = sedesGlobales[idx]; if (oldName === 'Principal') return window.mostrarModalGlobal('error', 'Acción Denegada', 'La sede Principal es la matriz del sistema y no se puede modificar.'); window.mostrarModalGlobal('prompt', 'Renombrar Sede', `Vas a renombrar la sede "${oldName}".\n(⚠️ Esto actualizará automáticamente a todos los usuarios y todo el stock asignado a esta sede)`, oldName, async function(newName) { if (!newName || newName.trim() === '' || newName.trim() === oldName) return; const formatedName = newName.trim(); if (sedesGlobales.includes(formatedName)) return window.mostrarModalGlobal('error', 'Error', 'Ese nombre de sede ya existe.'); loader.classList.remove('hidden'); try { let nuevaLista = [...sedesGlobales]; nuevaLista[idx] = formatedName; await setDoc(doc(db, "sistema", "sedes"), { lista: nuevaLista }); const usersToUpdate = usuariosDB.filter(u => u.sede === oldName); const userPromises = usersToUpdate.map(u => updateDoc(doc(db, "usuarios", u.id), { sede: formatedName })); if(userPromises.length > 0) await Promise.all(userPromises); const invToUpdate = inventarioGlobal.filter(p => p.stockSedes && p.stockSedes[oldName] !== undefined); const invPromises = invToUpdate.map(p => { let nSedes = { ...p.stockSedes }; nSedes[formatedName] = nSedes[oldName]; delete nSedes[oldName]; return updateDoc(doc(db, "inventario", p.id), { stockSedes: nSedes }); }); if(invPromises.length > 0) await Promise.all(invPromises); window.mostrarModalGlobal('exito', 'Operación Exitosa', `Sede renombrada a "${formatedName}".\nSe actualizaron ${usersToUpdate.length} usuarios y el stock de ${invToUpdate.length} productos.`); } catch (error) { window.mostrarModalGlobal('error', 'Error Crítico', 'Ocurrió un error en la base de datos al intentar renombrar.'); } loader.classList.add('hidden'); }); }
+        window.eliminarSede = function(idx) { if(sedesGlobales[idx] === 'Principal') return window.mostrarModalGlobal('error', 'Acción Denegada', 'No puedes borrar la sede Principal.'); window.mostrarModalGlobal('confirmacion', 'Borrar Sede', `¿Borrar permanentemente la sede ${sedesGlobales[idx]}?\n\nAsegúrate de haber transferido todo su stock a otra sede, o podrías perder trazabilidad.`, '', async function() { loader.classList.remove('hidden'); const nuevaLista = [...sedesGlobales]; nuevaLista.splice(idx, 1); await setDoc(doc(db, "sistema", "sedes"), { lista: nuevaLista }); loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Sede Eliminada', 'La sucursal fue retirada del sistema.'); }); }
+        window.renderizarSedes = function() { const grid = document.getElementById('grid-sedes'); grid.innerHTML = ''; sedesGlobales.forEach((sede, i) => { const isPrincipal = sede === 'Principal'; grid.innerHTML += `<div class="bg-blue-50 border border-blue-100 p-4 rounded-xl flex flex-col justify-between items-start shadow-sm gap-3"><span class="font-black text-blue-900 text-lg w-full truncate" title="${sede}">${sede}</span><div class="flex gap-2 w-full justify-end border-t border-blue-100 pt-3 mt-1">${!isPrincipal ? `<button onclick="window.renombrarSede(${i})" class="flex-1 text-blue-600 hover:bg-blue-600 hover:text-white font-bold bg-white border border-blue-200 py-1.5 rounded transition shadow-sm text-xs">✏️ Editar</button><button onclick="window.eliminarSede(${i})" class="flex-1 text-red-500 hover:bg-red-500 hover:text-white font-bold bg-white border border-red-200 py-1.5 rounded transition shadow-sm text-xs">🗑️ Borrar</button>` : '<span class="w-full text-center text-xs font-black text-blue-400 bg-white py-1.5 rounded border border-blue-100">🔒 SEDE MATRIZ PROTEGIDA</span>'}</div></div>`; }); }
+        window.actualizarSelectSedes = function() { const selects = document.querySelectorAll('.select-sedes'); selects.forEach(s => { s.innerHTML = ''; sedesGlobales.forEach(sede => s.innerHTML += `<option value="${sede}">${sede}</option>`); }); }
+
+        // --- MOVIMIENTOS DE STOCK ---
+        onSnapshot(collection(db, "inventario"), (snap) => { inventarioGlobal = []; const datalist = document.getElementById('lista-nombres-productos'); datalist.innerHTML = ''; snap.forEach(d => { const p = { id: d.id, ...d.data() }; inventarioGlobal.push(p); datalist.innerHTML += `<option value="[${p.codigo}] ${p.nombre}">`; }); if(sesionAdmin) { window.actualizarDashboard(); window.renderizarTablaStock(); } });
+        window.renderizarTablaStock = function() { const tbody = document.getElementById('tabla-stock-admin'); if(!tbody) return; const filtro = (document.getElementById('buscador-stock').value || '').toLowerCase(); tbody.innerHTML = ''; inventarioGlobal.filter(p => p.nombre.toLowerCase().includes(filtro) || (p.codigo||'').toLowerCase().includes(filtro)).forEach(p => { let stockHtml = '<div class="flex flex-wrap gap-2">'; sedesGlobales.forEach(sede => { const cant = (p.stockSedes && p.stockSedes[sede]) ? p.stockSedes[sede] : 0; const color = cant > 0 ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-slate-100 text-slate-500 border-slate-200'; stockHtml += `<span class="px-2 py-1 rounded text-[11px] font-bold border ${color}">${sede}: ${cant}</span>`; }); stockHtml += '</div>'; tbody.innerHTML += `<tr class="hover:bg-slate-50 transition border-b border-slate-100"><td class="p-4 font-bold text-slate-600 text-xs">${p.codigo}<br><span class="text-[9px] text-slate-400 uppercase">${p.ref}</span></td><td class="p-4 font-black text-slate-700 leading-tight">${p.nombre}</td><td class="p-4">${stockHtml}</td><td class="p-4 text-center border-l border-slate-100"><span class="bg-slate-900 text-white px-3 py-1 rounded font-black text-sm">${p.existencia || 0}</span></td></tr>`; }); }
+        function obtenerProductoPorInput(valorInput) { const match = valorInput.match(/\[(.*?)\] (.*)/); if(match) { const cod = match[1]; return inventarioGlobal.find(p => p.codigo === cod); } return inventarioGlobal.find(p => p.nombre === valorInput); }
+
+        window.procesarCarga = async function() { const valProd = document.getElementById('mov-cargar-prod').value; const sede = document.getElementById('mov-cargar-sede').value; const cant = parseInt(document.getElementById('mov-cargar-cant').value) || 0; if(!valProd || cant <= 0) return window.mostrarModalGlobal('error', 'Datos Inválidos', 'Selecciona un producto e ingresa una cantidad válida.'); const prod = obtenerProductoPorInput(valProd); if(!prod) return window.mostrarModalGlobal('error', 'No Encontrado', 'Producto no registrado en la base de datos.'); loader.classList.remove('hidden'); let stockSedes = prod.stockSedes || {}; if(Object.keys(stockSedes).length === 0 && (prod.existencia > 0)) { stockSedes["Principal"] = prod.existencia; } stockSedes[sede] = (stockSedes[sede] || 0) + cant; let nuevoTotalGlobal = (prod.existencia || 0) + cant; await updateDoc(doc(db, "inventario", prod.id), { existencia: nuevoTotalGlobal, stockSedes: stockSedes }); document.getElementById('mov-cargar-prod').value = ''; document.getElementById('mov-cargar-cant').value = ''; loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Ingreso Exitoso', `Se sumaron ${cant} unidades a la sede [${sede}].`); }
+        window.procesarTransferencia = async function() { const valProd = document.getElementById('mov-trans-prod').value; const origen = document.getElementById('mov-trans-origen').value; const destino = document.getElementById('mov-trans-destino').value; const cant = parseInt(document.getElementById('mov-trans-cant').value) || 0; if(!valProd || cant <= 0) return window.mostrarModalGlobal('error', 'Datos Inválidos', 'Revisa el producto y la cantidad.'); if(origen === destino) return window.mostrarModalGlobal('error', 'Ruta Inválida', 'La sede de origen y destino no pueden ser la misma.'); const prod = obtenerProductoPorInput(valProd); if(!prod) return window.mostrarModalGlobal('error', 'No Encontrado', 'Producto no registrado en la base de datos.'); let stockSedes = prod.stockSedes || {}; if(Object.keys(stockSedes).length === 0 && (prod.existencia > 0)) { stockSedes["Principal"] = prod.existencia; } const stockDisponible = stockSedes[origen] || 0; if(stockDisponible < cant) return window.mostrarModalGlobal('error', 'Operación Denegada', `La sede [${origen}] solo tiene ${stockDisponible} unidades disponibles.`); loader.classList.remove('hidden'); stockSedes[origen] -= cant; stockSedes[destino] = (stockSedes[destino] || 0) + cant; await updateDoc(doc(db, "inventario", prod.id), { stockSedes: stockSedes }); document.getElementById('mov-trans-prod').value = ''; document.getElementById('mov-trans-cant').value = ''; loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Transferencia Completada', `Se movieron ${cant} unidades de ${origen} hacia ${destino}.`); }
+        window.procesarDescargo = async function() { const valProd = document.getElementById('mov-desc-prod').value; const sede = document.getElementById('mov-desc-sede').value; const cant = parseInt(document.getElementById('mov-desc-cant').value) || 0; if(!valProd || cant <= 0) return window.mostrarModalGlobal('error', 'Datos Inválidos', 'Revisa el producto y la cantidad a descargar.'); const prod = obtenerProductoPorInput(valProd); if(!prod) return window.mostrarModalGlobal('error', 'No Encontrado', 'Producto no registrado en la base de datos.'); let stockSedes = prod.stockSedes || {}; if(Object.keys(stockSedes).length === 0 && (prod.existencia > 0)) { stockSedes["Principal"] = prod.existencia; } const stockDisponible = stockSedes[sede] || 0; if(stockDisponible < cant) return window.mostrarModalGlobal('error', 'Operación Denegada', `No puedes retirar ${cant} unidades.\nLa sede [${sede}] solo tiene ${stockDisponible} unidades físicas.`); window.mostrarModalGlobal('confirmacion', 'Confirmar Descargo', `¿Estás seguro de retirar ${cant} unidades de ${prod.nombre} de la sede [${sede}]?\n\nEsta acción restará el stock general.`, '', async function() { loader.classList.remove('hidden'); stockSedes[sede] -= cant; let nuevoTotalGlobal = (prod.existencia || 0) - cant; await updateDoc(doc(db, "inventario", prod.id), { existencia: nuevoTotalGlobal, stockSedes: stockSedes }); document.getElementById('mov-desc-prod').value = ''; document.getElementById('mov-desc-cant').value = ''; loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Descargo Aplicado', `Se retiraron ${cant} unidades de la sede [${sede}].`); }); }
+
+        // --- GESTIÓN DE CLIENTES Y USUARIOS ---
+        onSnapshot(collection(db, "clientes"), (snapshot) => { clientesDB = []; snapshot.forEach((doc) => clientesDB.push({ id: doc.id, ...doc.data() })); if (!document.getElementById('vista-clientes').classList.contains('hidden')) window.renderizarTablaClientes(); });
+        window.renderizarTablaClientes = function() { const tbody = document.getElementById('tabla-clientes'); const filtro = (document.getElementById('buscador-clientes').value || '').toLowerCase(); tbody.innerHTML = ''; clientesDB.filter(c => c.nombre.toLowerCase().includes(filtro) || c.rif.toLowerCase().includes(filtro)).forEach(c => { tbody.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-4 font-black text-slate-700">${c.rif}</td><td class="p-4 font-bold text-slate-600 uppercase">${c.nombre}</td><td class="p-4 text-center"><button onclick="window.abrirModalCliente('${c.id}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 font-bold px-3 py-1 rounded transition mr-2">Editar</button><button onclick="window.eliminarCliente('${c.id}')" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-600 font-bold px-3 py-1 rounded transition">Eliminar</button></td></tr>`; }); }
+        window.abrirModalCliente = function(id) { const c = clientesDB.find(x => x.id === id); if(!c) return; document.getElementById('edit-cli-id').value = c.id; document.getElementById('edit-cli-rif').value = c.rif; document.getElementById('edit-cli-nombre').value = c.nombre; document.getElementById('modal-editar-cliente').classList.remove('hidden'); }
+        window.cerrarModalCliente = () => document.getElementById('modal-editar-cliente').classList.add('hidden');
+        window.guardarEdicionCliente = async function() { const id = document.getElementById('edit-cli-id').value; const rif = document.getElementById('edit-cli-rif').value.trim().toUpperCase(); const nombre = document.getElementById('edit-cli-nombre').value.trim().toUpperCase(); if(!rif || !nombre) return window.mostrarModalGlobal('error', 'Campos Vacíos', 'Por favor llena todos los datos del cliente.'); loader.classList.remove('hidden'); if (id !== rif) { await setDoc(doc(db, "clientes", rif), { rif: rif, nombre: nombre }); await deleteDoc(doc(db, "clientes", id)); } else { await updateDoc(doc(db, "clientes", id), { nombre: nombre }); } loader.classList.add('hidden'); window.cerrarModalCliente(); window.mostrarModalGlobal('exito', 'Cliente Guardado', 'Los datos fueron actualizados correctamente.');}
+        window.eliminarCliente = function(id) { window.mostrarModalGlobal('confirmacion', 'Eliminar Cliente', '¿Borrar este cliente de la base de datos de Sinergy?', '', async function() { loader.classList.remove('hidden'); await deleteDoc(doc(db, "clientes", id)); loader.classList.add('hidden'); }); }
+        window.renderizarTablaUsuarios = function() { const tbody = document.getElementById('tabla-usuarios'); if(!tbody) return; tbody.innerHTML = ''; usuariosDB.forEach(u => { const isCajero = u.role === 'cajero'; const sedeBadge = u.sede ? `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-black mt-1 inline-block">${u.sede}</span>` : `<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold mt-1 inline-block">Sin Sede</span>`; tbody.innerHTML += `<tr oncontextmenu="window.mostrarMenuUsuario(event, '${u.id}')" class="hover:bg-blue-50 transition cursor-context-menu border-b border-slate-50"><td class="p-4 font-black text-slate-700 leading-tight">${u.username}<br>${sedeBadge}</td><td class="p-4 text-slate-500 font-mono text-sm border-l border-r border-slate-100 bg-slate-50/50">${u.password}</td><td class="p-4"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${isCajero ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600 border border-red-200'}">${u.role}</span></td><td class="p-4 text-center"><button onclick="window.eliminarUsuario('${u.id}')" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-600 font-bold px-3 py-1 rounded transition">Eliminar</button></td></tr>`; }); }
+        window.crearUsuario = async function() { const u = document.getElementById('nu-user').value.trim(); const p = document.getElementById('nu-pass').value.trim(); const r = document.getElementById('nu-rol').value; if(!u || !p) return window.mostrarModalGlobal('error', 'Campos Vacíos', 'Faltan datos por llenar.'); if(usuariosDB.find(x => x.username.toLowerCase() === u.toLowerCase())) return window.mostrarModalGlobal('error', 'Usuario Duplicado', 'Ese nombre de usuario ya está registrado.'); loader.classList.remove('hidden'); await setDoc(doc(db, "usuarios", Date.now().toString()), { username: u, password: p, role: r, sede: "Principal" }); document.getElementById('nu-user').value = ''; document.getElementById('nu-pass').value = ''; loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Usuario Creado', 'El operador ha sido registrado en Sinergy.');}
+        window.eliminarUsuario = function(id) { window.mostrarModalGlobal('confirmacion', 'Eliminar Usuario', '¿Seguro que deseas eliminar este acceso al sistema?', '', async function() { loader.classList.remove('hidden'); await deleteDoc(doc(db, "usuarios", id)); loader.classList.add('hidden'); }); }
+        window.mostrarMenuUsuario = function(e, id) { e.preventDefault(); usuarioSeleccionadoId = id; const menu = document.getElementById('menu-contextual-usuario'); menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px'; menu.classList.remove('hidden'); }
+        window.abrirModalAsignarSede = function() { const select = document.getElementById('select-sede-usuario'); select.innerHTML = '<option value="">-- Sin Sede (Acceso Restringido) --</option>'; sedesGlobales.forEach(s => select.innerHTML += `<option value="${s}">${s}</option>`); const u = usuariosDB.find(x => x.id === usuarioSeleccionadoId); if(u && u.sede) select.value = u.sede; else select.value = ""; document.getElementById('modal-asignar-sede').classList.remove('hidden'); }
+        window.cerrarModalAsignarSede = () => document.getElementById('modal-asignar-sede').classList.add('hidden');
+        window.guardarSedeUsuario = async function() { const sedeSel = document.getElementById('select-sede-usuario').value; loader.classList.remove('hidden'); await updateDoc(doc(db, "usuarios", usuarioSeleccionadoId), { sede: sedeSel }); loader.classList.add('hidden'); window.cerrarModalAsignarSede(); window.mostrarModalGlobal('exito', 'Sede Asignada', 'Permisos actualizados para el usuario.');}
+
+        // --- DASHBOARD ---
+        window.actualizarDashboard = function() { let patrimonio = 0; inventarioGlobal.forEach(p => { patrimonio += ((p.existencia||0) * p.costo); }); document.getElementById('dash-inv-usd').innerText = `$${patrimonio.toFixed(2)}`; document.getElementById('dash-inv-items').innerText = `${inventarioGlobal.length} items registrados`; let ventasTotales = 0; let anuladas = 0; ventasGlobales.forEach(v => { if(!v.anulada) ventasTotales += v.totalUSD; else anuladas++; }); document.getElementById('dash-ventas-usd').innerText = `$${ventasTotales.toFixed(2)}`; document.getElementById('dash-ventas-bs').innerText = `Ref Bs: ${(ventasTotales * configGlobal.tasa).toLocaleString('es-VE')}`; document.getElementById('dash-facturas').innerText = ventasGlobales.length; document.getElementById('dash-anuladas').innerText = `${anuladas} Anuladas`; const ventasExitosas = ventasGlobales.filter(v => !v.anulada).sort((a,b) => a.timestamp - b.timestamp).slice(-10); const etiquetas = ventasExitosas.map(v => v.fechaHora.split(',')[0]); const datos = ventasExitosas.map(v => v.totalUSD); const ctx = document.getElementById('graficaVentas').getContext('2d'); if(chartInstancia) chartInstancia.destroy(); chartInstancia = new Chart(ctx, { type: 'bar', data: { labels: etiquetas.length > 0 ? etiquetas : ['Sin Datos'], datasets: [{ label: 'Ingresos USD', data: datos.length > 0 ? datos : [0], backgroundColor: '#2563eb', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } } }); }
+        
+        window.checkLogin();
+    </script>
+</body>
+</html>
