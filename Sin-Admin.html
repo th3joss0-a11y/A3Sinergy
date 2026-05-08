@@ -38,6 +38,37 @@
         </div>
     </div>
 
+    <div id="modal-resumen-cuentas" class="hidden fixed inset-0 bg-slate-900/90 z-[450] flex items-center justify-center p-4 backdrop-blur-md no-print">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-2xl shadow-2xl animate-pop flex flex-col max-h-[90vh] border-t-8 border-blue-600">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">💰 Resumen de Cuentas</h3>
+                <button onclick="document.getElementById('modal-resumen-cuentas').classList.add('hidden')" class="text-slate-400 hover:text-red-500 font-black text-3xl">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Sede</label>
+                    <select id="resumen-filtro-sede" class="w-full border-2 p-2 rounded-lg bg-white font-bold text-sm outline-blue-500 select-sedes-todas"></select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Desde</label>
+                    <input type="date" id="resumen-fecha-inicio" class="w-full border-2 p-2 rounded-lg bg-white font-bold text-sm outline-blue-500">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Hasta</label>
+                    <input type="date" id="resumen-fecha-fin" class="w-full border-2 p-2 rounded-lg bg-white font-bold text-sm outline-blue-500">
+                </div>
+                <div class="md:col-span-3">
+                    <button onclick="window.generarResumenFiltrado()" class="w-full bg-blue-600 text-white py-2 rounded-xl font-black shadow-lg hover:bg-blue-700 transition uppercase tracking-widest text-xs">Calcular Resumen</button>
+                </div>
+            </div>
+
+            <div id="resumen-resultados" class="flex-1 overflow-y-auto space-y-4 pr-2">
+                <p class="text-center text-slate-400 italic py-10">Selecciona los filtros y haz clic en Calcular.</p>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-movimiento-detalle" class="hidden fixed inset-0 bg-slate-900/90 z-[350] flex items-center justify-center p-4 backdrop-blur-sm no-print">
         <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-t-8 border-slate-800 animate-pop">
             <h3 class="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2">📄 Auditoría de Movimiento</h3>
@@ -116,7 +147,10 @@
                 
                 <div id="vista-dashboard" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"><p class="text-xs font-bold text-slate-500 uppercase mb-1">Ventas Históricas</p><h2 id="dash-ventas-usd" class="text-3xl font-black text-blue-600">$0.00</h2><p id="dash-ventas-bs" class="text-sm font-bold text-slate-400">Bs. 0.00</p></div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                            <div><p class="text-xs font-bold text-slate-500 uppercase mb-1">Ventas Históricas</p><h2 id="dash-ventas-usd" class="text-3xl font-black text-blue-600">$0.00</h2></div>
+                            <button onclick="window.abrirModalResumen()" class="mt-4 bg-blue-50 text-blue-600 p-2 rounded-xl text-[10px] font-black uppercase border border-blue-100 hover:bg-blue-600 hover:text-white transition shadow-sm">📑 Ver Resumen de Cuentas</button>
+                        </div>
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"><p class="text-xs font-bold text-slate-500 uppercase mb-1">Patrimonio en Inventario</p><h2 id="dash-inv-usd" class="text-3xl font-black text-slate-800">$0.00</h2><p id="dash-inv-items" class="text-sm font-bold text-slate-400">0 items</p></div>
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"><p class="text-xs font-bold text-slate-500 uppercase mb-1">Facturas Procesadas</p><h2 id="dash-facturas" class="text-3xl font-black text-emerald-600">0</h2><p id="dash-anuladas" class="text-sm font-bold text-red-400">0 Anuladas</p></div>
                     </div>
@@ -304,7 +338,9 @@
 
             </main>
         </div>
-    </div> <div id="zona-impresion-admin" class="print-only"></div>
+    </div> 
+    
+    <div id="zona-impresion-admin" class="print-only"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -317,7 +353,7 @@
         let sedesGlobales = ["Principal"]; let inventarioGlobal = []; 
         let ventasGlobalesAdmin = []; let movimientosGlobalesAdmin = []; let auditoriaUnificada = [];
         let cortesZGlobal = []; let usuariosDB = [];
-        let cuentasPorCobrarGlobal = []; // Para el buscador de Cuentas por Cobrar
+        let cuentasPorCobrarGlobal = []; 
         let sesionAdmin = JSON.parse(localStorage.getItem('a3_sesion_admin')) || null;
         let chartInstancia = null;
         const loader = document.getElementById('loader-nube');
@@ -435,7 +471,11 @@
             if (documento.exists()) { 
                 sedesGlobales = documento.data().lista || ["Principal"]; 
                 const sel = document.querySelectorAll('.select-sedes'); 
+                const selTodas = document.querySelectorAll('.select-sedes-todas');
+                
                 sel.forEach(s => { s.innerHTML=''; sedesGlobales.forEach(se => s.innerHTML+=`<option value="${se}">${se}</option>`); }); 
+                selTodas.forEach(s => { s.innerHTML='<option value="Todas">Todas las Sedes</option>'; sedesGlobales.forEach(se => s.innerHTML+=`<option value="${se}">${se}</option>`); }); 
+                
                 window.renderizarSedes(); 
             } 
         });
@@ -473,6 +513,73 @@
             window.mostrarModalGlobal('confirmacion', 'Borrar Sede', `¿Eliminar ${sedesGlobales[i]} de la lista?`, '', async function() { loader.classList.remove('hidden'); let nueva = [...sedesGlobales]; nueva.splice(i, 1); await setDoc(doc(db, "sistema", "sedes"), { lista: nueva }); loader.classList.add('hidden'); }); 
         }
 
+        // --- SISTEMA DE RESUMEN DE CUENTAS (NUEVO) ---
+        window.abrirModalResumen = function() {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('resumen-fecha-inicio').value = hoy;
+            document.getElementById('resumen-fecha-fin').value = hoy;
+            document.getElementById('resumen-resultados').innerHTML = `<p class="text-center text-slate-400 italic py-10">Selecciona los filtros y haz clic en Calcular.</p>`;
+            document.getElementById('modal-resumen-cuentas').classList.remove('hidden');
+        }
+
+        window.generarResumenFiltrado = function() {
+            const sede = document.getElementById('resumen-filtro-sede').value;
+            const fInicio = new Date(document.getElementById('resumen-fecha-inicio').value + "T00:00:00").getTime();
+            const fFin = new Date(document.getElementById('resumen-fecha-fin').value + "T23:59:59").getTime();
+
+            if (isNaN(fInicio) || isNaN(fFin)) return window.mostrarModalGlobal('error', 'Error', 'Selecciona un rango de fechas válido.');
+
+            let tot = { usd: 0, zelle: 0, bs_efec: 0, punto: 0, pm: 0, credito: 0, ops: 0 };
+
+            ventasGlobalesAdmin.forEach(v => {
+                if(v.anulada) return;
+                const idNum = parseInt(v.id);
+                if (idNum >= fInicio && idNum <= fFin) {
+                    if (sede === "Todas" || v.sede === sede) {
+                        tot.ops++;
+                        if (v.metodoPago === "Crédito") {
+                            tot.credito += v.totalUSD;
+                        } else if (v.desglosePago) {
+                            for (let [m, data] of Object.entries(v.desglosePago)) {
+                                if (m === "Efectivo USD") tot.usd += data.usd;
+                                else if (m === "Zelle") tot.zelle += data.usd;
+                                else if (m === "Efectivo Bs") tot.bs_efec += data.bs;
+                                else if (m === "Punto de Venta") tot.punto += data.bs;
+                                else if (m === "Pago Móvil") tot.pm += data.bs;
+                            }
+                        }
+                    }
+                }
+            });
+
+            const res = document.getElementById('resumen-resultados');
+            const totalDolares = tot.usd + tot.zelle;
+            const totalBolivares = tot.bs_efec + tot.punto + tot.pm;
+
+            res.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-sm">
+                        <p class="text-[10px] font-bold text-blue-500 uppercase mb-2">Ingresos en Divisas ($)</p>
+                        <div class="flex justify-between border-b border-blue-200 pb-1 mb-1 text-sm"><span class="text-slate-600">Efectivo USD:</span> <span class="font-bold">$${tot.usd.toFixed(2)}</span></div>
+                        <div class="flex justify-between border-b border-blue-200 pb-1 mb-1 text-sm"><span class="text-slate-600">Zelle:</span> <span class="font-bold">$${tot.zelle.toFixed(2)}</span></div>
+                        <div class="flex justify-between pt-2"><span class="font-black text-blue-700">TOTAL USD:</span> <span class="font-black text-blue-700 text-xl">$${totalDolares.toFixed(2)}</span></div>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 shadow-sm">
+                        <p class="text-[10px] font-bold text-emerald-500 uppercase mb-2">Ingresos en Bolívares (Bs)</p>
+                        <div class="flex justify-between border-b border-emerald-200 pb-1 mb-1 text-sm"><span class="text-slate-600">Efectivo Bs:</span> <span class="font-bold">Bs. ${tot.bs_efec.toLocaleString('es-VE', {minimumFractionDigits:2})}</span></div>
+                        <div class="flex justify-between border-b border-emerald-200 pb-1 mb-1 text-sm"><span class="text-slate-600">Punto de Venta:</span> <span class="font-bold">Bs. ${tot.punto.toLocaleString('es-VE', {minimumFractionDigits:2})}</span></div>
+                        <div class="flex justify-between border-b border-emerald-200 pb-1 mb-1 text-sm"><span class="text-slate-600">Pago Móvil:</span> <span class="font-bold">Bs. ${tot.pm.toLocaleString('es-VE', {minimumFractionDigits:2})}</span></div>
+                        <div class="flex justify-between pt-2"><span class="font-black text-emerald-700">TOTAL Bs:</span> <span class="font-black text-emerald-700 text-lg">Bs. ${totalBolivares.toLocaleString('es-VE', {minimumFractionDigits:2})}</span></div>
+                    </div>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-2xl border border-orange-200 flex justify-between items-center shadow-sm">
+                    <div><p class="text-[10px] font-black text-orange-600 uppercase">Ventas a Crédito (Por Cobrar)</p><span class="text-[10px] text-orange-500 font-bold">Monto que salió del inventario pero no entró a caja aún.</span></div>
+                    <span class="font-black text-orange-700 text-2xl">$${tot.credito.toFixed(2)}</span>
+                </div>
+                <div class="text-center bg-slate-900 text-white p-3 rounded-xl shadow-lg"><p class="text-[10px] font-bold uppercase text-slate-400">Total de Operaciones en el periodo</p><p class="text-xl font-black">${tot.ops}</p></div>
+            `;
+        }
+
         // --- BD GLOBAL ---
         onSnapshot(collection(db, "ventas"), (snap) => { ventasGlobalesAdmin = []; snap.forEach(d => ventasGlobalesAdmin.push({id: d.id, _categoria: 'venta', ...d.data()})); window.mezclarYRenderizarAuditoria(); });
         onSnapshot(collection(db, "movimientos"), (snap) => { movimientosGlobalesAdmin = []; snap.forEach(d => movimientosGlobalesAdmin.push({id: d.id, _categoria: 'movimiento', ...d.data()})); window.mezclarYRenderizarAuditoria(); });
@@ -481,9 +588,7 @@
         // --- CUENTAS POR COBRAR ---
         onSnapshot(collection(db, "cuentas_por_cobrar"), (snap) => {
             cuentasPorCobrarGlobal = [];
-            snap.forEach(d => {
-                cuentasPorCobrarGlobal.push({id: d.id, ...d.data()});
-            });
+            snap.forEach(d => { cuentasPorCobrarGlobal.push({id: d.id, ...d.data()}); });
             window.renderizarCuentasCobrar();
         });
 
@@ -712,18 +817,42 @@
             await setDoc(doc(db, "movimientos", idDoc), movData); window.imprimirTemplateMovimiento(idDoc, movData); window.listasMovimientos[tipo] = []; window.renderizarListaMovimientos(tipo); loader.classList.add('hidden');
         }
 
-        // --- IMPRESIÓN ---
-        window.reimprimirDocumento = function(e, id, categoria) { e.preventDefault(); if(categoria === 'venta') { const v = ventasGlobalesAdmin.find(x => x.id === id); if(v) window.imprimirTemplateFactura(v); } else if (categoria === 'movimiento') { const m = movimientosGlobalesAdmin.find(x => x.id === id); if(m) window.imprimirTemplateMovimiento(m.id, m); } }
+        // --- IMPRESIÓN (TOTALMENTE RESTAURADA) ---
+        window.reimprimirDocumento = function(e, id, categoria) { 
+            e.preventDefault(); 
+            if(categoria === 'venta') { 
+                const v = ventasGlobalesAdmin.find(x => x.id === id); 
+                if(v) window.imprimirTemplateFactura(v); 
+            } else if (categoria === 'movimiento') { 
+                const m = movimientosGlobalesAdmin.find(x => x.id === id); 
+                if(m) window.imprimirTemplateMovimiento(m.id, m); 
+            } 
+        }
+
         window.imprimirTemplateMovimiento = function(idDoc, movData) {
             let colorCabecera = movData.tipo === 'cargar' ? '#10b981' : (movData.tipo === 'descargar' ? '#ef4444' : '#8b5cf6'); let titulo = movData.tipo === 'cargar' ? 'CARGO A INVENTARIO' : (movData.tipo === 'descargar' ? 'DESCARGO DE INVENTARIO' : 'TRASLADO ENTRE ALMACENES');
             let filasImpresion = movData.items.map(i => { let ubi = movData.tipo === 'cargar' ? `Hacia: ${i.destino}` : (movData.tipo === 'descargar' ? `Desde: ${i.origen}` : `${i.origen} ➔ ${i.destino}`); return `<tr><td style="padding:10px; border:1px solid #ccc; font-family:monospace;">${i.codigo}</td><td style="padding:10px; border:1px solid #ccc; font-weight:bold;">${i.nombre}</td><td style="padding:10px; border:1px solid #ccc; font-size:12px; color:#555;">${ubi}</td><td style="padding:10px; border:1px solid #ccc; text-align:center; font-weight:bold; font-size:16px;">${i.cant}</td></tr>`; }).join('');
             document.getElementById('zona-impresion-admin').innerHTML = `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid ${colorCabecera}; border-radius: 12px;"><div style="text-align: center; border-bottom: 3px solid ${colorCabecera}; padding-bottom: 15px; margin-bottom: 25px;"><p style="margin: 0 0 5px 0; color: #555; font-size: 14px; text-transform: uppercase;"><b>A3Sinergy Control</b> &nbsp;|&nbsp; Fecha: ${movData.fechaHora} &nbsp;|&nbsp; Doc: <b>#${idDoc.slice(-6)}</b></p><h1 style="margin: 0; font-size: 26px; color: ${colorCabecera}; font-weight: 900; letter-spacing: 1px;">COMPROBANTE DE ${titulo}</h1></div><table style="width: 100%; margin-bottom: 25px; border-collapse: collapse; font-size: 14px;"><tr><td style="padding: 8px; border: 1px solid #ccc; background: #f9fafb; width: 50%;"><b>Responsable (Ejecutor):</b> <br>${movData.responsable}</td><td style="padding: 8px; border: 1px solid #ccc; background: #f9fafb; width: 50%;"><b>Autorizado Por:</b> <br>${movData.autorizado}</td></tr><tr><td colspan="2" style="padding: 8px; border: 1px solid #ccc;"><b>Motivo / Propósito:</b> ${movData.proposito}</td></tr><tr><td colspan="2" style="padding: 8px; border: 1px solid #ccc;"><b>Detalles u Observaciones:</b> ${movData.detalles || 'Ninguna'}</td></tr></table><h3 style="margin-bottom: 10px; color: #333; font-size: 16px;">Detalle de Artículos Procesados:</h3><table style="width: 100%; border-collapse: collapse; margin-bottom: 50px; text-align: left;"><thead><tr style="background-color: #f8fafc; color: #333;"><th style="padding: 10px; border: 1px solid #ccc;">Código</th><th style="padding: 10px; border: 1px solid #ccc;">Descripción del Producto</th><th style="padding: 10px; border: 1px solid #ccc;">Ubicación Física</th><th style="padding: 10px; border: 1px solid #ccc; text-align: center;">Cant.</th></tr></thead><tbody>${filasImpresion}</tbody></table><div style="display: flex; justify-content: space-around; margin-top: 80px; margin-bottom: 20px;"><div style="text-align: center; width: 250px;"><div style="border-top: 2px solid #333; padding-top: 5px; font-weight: bold; font-size: 14px;">Firma del Responsable</div><div style="font-size: 11px; color: #666;">C.I: ____________________</div></div><div style="text-align: center; width: 250px;"><div style="border-top: 2px solid #333; padding-top: 5px; font-weight: bold; font-size: 14px;">Firma Autorizada</div><div style="font-size: 11px; color: #666;">Sello de Gerencia</div></div></div></div>`; window.print();
         }
+
         window.imprimirTemplateFactura = function(venta) {
             let strItems = venta.items.map(c => `<tr><td style="padding:10px; border:1px solid #ccc;">${c.cant}x</td><td style="padding:10px; border:1px solid #ccc;">${c.nombre}</td><td style="padding:10px; border:1px solid #ccc; text-align:right;">$${(c.pDetal*c.cant).toFixed(2)}</td></tr>`).join('');
             document.getElementById('zona-impresion-admin').innerHTML = `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; border: 2px solid #2563eb; border-radius: 12px;"><div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 20px;"><div><h1 style="margin: 0; font-size: 28px; color: #1e293b; font-weight: 900;">A3Sinergy</h1><p style="margin: 5px 0; color: #64748b; font-size: 14px;">Sede Administrativa: ${venta.sede || 'Principal'}</p></div><div style="text-align: right;"><h2 style="margin: 0; font-size: 22px; color: #2563eb; letter-spacing: 2px;">COPIA DE FACTURA</h2><p style="margin: 5px 0 0 0; font-size: 16px;"><b>Nº #${venta.id.slice(-6)}</b></p><p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">${venta.fechaHora}</p></div></div><table style="width: 100%; margin-bottom: 30px; font-size: 14px;"><tr><td style="width: 50%; vertical-align: top;"><h4 style="margin: 0 0 5px 0; color: #94a3b8; font-size: 11px; text-transform: uppercase;">Facturado a:</h4><p style="margin: 0; font-weight: bold; font-size: 16px;">${venta.cliente || 'Consumidor Final'}</p><p style="margin: 2px 0 0 0; color: #475569;">CI/RIF: ${venta.clienteCI || 'S/N'}</p></td><td style="width: 50%; vertical-align: top; text-align: right;"><h4 style="margin: 0 0 5px 0; color: #94a3b8; font-size: 11px; text-transform: uppercase;">Atendido por:</h4><p style="margin: 0; font-weight: bold;">${venta.vendedor || 'No especificado'}</p><p style="margin: 2px 0 0 0; font-size: 12px; color: ${venta.anulada ? '#ef4444' : '#10b981'}; font-weight: bold;">${venta.anulada ? 'FACTURA ANULADA EN SISTEMA' : 'PAGO PROCESADO'}</p></td></tr></table><table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; text-align: left;"><thead><tr style="background-color: #f8fafc; color: #333;"><th style="padding: 10px; width: 10%; border: 1px solid #ccc;">Cant.</th><th style="padding: 10px; width: 60%; border: 1px solid #ccc;">Descripción</th><th style="padding: 10px; width: 30%; text-align: right; border: 1px solid #ccc;">Importe (USD)</th></tr></thead><tbody>${strItems}</tbody></table><div style="display: flex; justify-content: flex-end;"><table style="width: 350px; font-size: 15px; border-collapse: collapse;"><tr><td style="padding: 5px 10px; color: #64748b; border: 1px solid #ccc;">Subtotal:</td><td style="padding: 5px 10px; text-align: right; font-weight: bold; border: 1px solid #ccc;">$${(venta.subUSD||0).toFixed(2)}</td></tr><tr><td style="padding: 5px 10px; color: #64748b; border: 1px solid #ccc;">IVA:</td><td style="padding: 5px 10px; text-align: right; font-weight: bold; border: 1px solid #ccc;">$${(venta.ivaUSD||0).toFixed(2)}</td></tr><tr><td style="padding: 10px; font-size: 18px; font-weight: 900; border: 1px solid #ccc; background: #f8fafc;">TOTAL USD:</td><td style="padding: 10px; text-align: right; font-size: 18px; font-weight: 900; color: #2563eb; border: 1px solid #ccc; background: #f8fafc;">$${venta.totalUSD.toFixed(2)}</td></tr><tr><td style="padding: 5px 10px; font-size: 12px; color: #64748b; border: 1px solid #ccc;">TOTAL Bs:</td><td style="padding: 5px 10px; text-align: right; font-weight: bold; border: 1px solid #ccc;">Bs. ${(venta.totalUSD * venta.tasaDia).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr></table></div></div>`; window.print();
         }
-        window.imprimirCorteZAdmin = function(idCorte) { /* Misma logica pero con los datos del corte Z */ }
+
+        window.imprimirCorteZAdmin = function(idCorte) { 
+             const d = cortesZGlobal.find(x => x.id === idCorte);
+             if(!d) return;
+             let strMetodosZ = ''; 
+             for(let [m, data] of Object.entries(d.desglose)) { 
+                 if(data.c > 0) { 
+                     if(m === 'Punto de Venta' || m === 'Pago Móvil' || m === 'Efectivo Bs') { strMetodosZ += `<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>${m}</span><span>Bs. ${(data.bs).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>`; } 
+                     else { strMetodosZ += `<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>${m}</span><span>$${data.usd.toFixed(2)}</span></div>`; } 
+                 } 
+             }
+             document.getElementById('zona-impresion-admin').innerHTML = `<div style="font-family: monospace; max-width: 300px; margin: 0 auto; padding: 20px; border: 1px solid #ccc;"><div style="text-align:center; border-bottom:1px dashed black; padding-bottom:5px; margin-bottom:5px;"><h2 style="margin:0; font-size:18px; font-weight:bold;">CORTE Z (CIERRE)</h2><p style="margin:2px 0;">Sede: ${d.sede}</p><p style="margin:2px 0;">Fecha: ${d.fechaHora}</p><p style="margin:2px 0;">Doc: #${idCorte.slice(-6)}</p></div><div style="border-bottom:1px dashed black; padding-bottom:5px; margin-bottom:5px;"><p style="margin:2px 0;">Facturas Hoy: ${d.facturas}</p><h3 style="margin:5px 0; font-size:16px; font-weight:bold;">TOTAL USD: $${d.totalUSD.toFixed(2)}</h3><p style="margin:2px 0; font-weight:bold;">TOTAL Bs: ${(d.totalBs).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p></div><div style="font-size:11px;"><p style="margin:2px 0; font-weight:bold; border-bottom:1px solid black; padding-bottom:2px;">INGRESOS EN CAJA:</p>${strMetodosZ}</div><div style="text-align:center; margin-top:15px; border-top:1px dashed black; padding-top:10px;"><p style="margin:0;">Fin de Reporte</p></div></div>`; 
+             window.print();
+        }
 
         window.checkLogin();
     </script>
