@@ -3,28 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A3Sinergy - Inventario Cloud</title>
+    <title>A3Sinergy - Inventario Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .animate-pop { animation: pop 0.3s cubic-bezier(0.26, 0.53, 0.74, 1.48); }
         @keyframes pop { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
-        #lista-categorias::-webkit-scrollbar { width: 4px; }
-        #lista-categorias::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-100 flex h-screen overflow-hidden text-slate-800 relative">
 
-    <div id="loader-nube" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-[200] animate-pulse hidden">Sincronizando con la Nube...</div>
+    <div id="loader-nube" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-[200] animate-pulse hidden">Sincronizando Online...</div>
 
-    <!-- ========================================== -->
-    <!-- MOTOR GLOBAL DE MODALES CONTEXTUALES       -->
-    <!-- ========================================== -->
+    <!-- MOTOR DE MODALES -->
     <div id="modal-custom-global" class="hidden fixed inset-0 bg-slate-900/80 z-[400] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 animate-pop" id="modal-global-border">
-            <div id="modal-global-icon" class="text-6xl mb-4">⚠️</div>
-            <h3 id="modal-global-title" class="text-xl font-black text-slate-800 mb-2">Título</h3>
+            <div id="modal-global-icon" class="text-6xl mb-4">⚠️</div><h3 id="modal-global-title" class="text-xl font-black text-slate-800 mb-2">Título</h3>
             <p id="modal-global-message" class="text-slate-500 font-medium mb-6">Mensaje</p>
             <input type="text" id="modal-global-input" class="hidden w-full border-2 p-3 rounded-xl font-bold outline-none text-center mb-6" placeholder="Escribe aquí...">
             <div id="modal-global-buttons" class="flex gap-2 justify-center">
@@ -34,19 +29,19 @@
         </div>
     </div>
 
-    <!-- MODAL DE LOGIN -->
+    <!-- MODAL DE LOGIN UNIVERSAL -->
     <div id="modal-login" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
-            <div class="text-4xl font-black mb-2"><span class="text-blue-600">A3</span>Sinergy</div><p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8 border-b pb-4">Gestión de Inventario</p>
+        <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center border-t-8 border-blue-500 animate-pop">
+            <div class="text-4xl font-black mb-2"><span class="text-blue-600">A3</span>Sinergy</div><p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8 border-b pb-4">Acceso al Sistema</p>
             <div class="space-y-4">
-                <div class="text-left"><label class="text-xs font-bold text-slate-500 uppercase">Usuario</label><input type="text" id="login-usuario" placeholder="Ej: admin" class="w-full border-2 border-slate-200 p-3 rounded-xl font-bold outline-none focus:border-blue-500 bg-slate-50"></div>
-                <div class="text-left"><label class="text-xs font-bold text-slate-500 uppercase">Contraseña</label><input type="password" id="login-clave" placeholder="****" class="w-full border-2 border-slate-200 p-3 rounded-xl font-black text-center tracking-widest text-2xl outline-none focus:border-blue-500"></div>
+                <div class="text-left"><label class="text-xs font-bold text-slate-500 uppercase">Usuario</label><input type="text" id="login-usuario" class="w-full border-2 p-3 rounded-xl font-bold outline-none focus:border-blue-500 bg-slate-50"></div>
+                <div class="text-left"><label class="text-xs font-bold text-slate-500 uppercase">Contraseña</label><input type="password" id="login-clave" class="w-full border-2 p-3 rounded-xl font-black text-center tracking-widest text-2xl outline-none focus:border-blue-500" onkeypress="if(event.key === 'Enter') window.verificarLogin()"></div>
                 <button onclick="window.verificarLogin()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-lg shadow-lg hover:bg-blue-700 transition mt-4 uppercase tracking-widest">Acceder</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL DE RUTA ADMIN -->
+    <!-- MODAL DE RUTA ADMIN (SÓLO SI ES ADMIN) -->
     <div id="modal-ruta-admin" class="fixed inset-0 bg-slate-900/90 z-[110] flex flex-col items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
             <h3 class="text-2xl font-black text-slate-800 mb-2">¡Hola, Admin! 👋</h3><p class="text-sm font-bold text-slate-500 mb-6">¿A qué módulo deseas entrar hoy?</p>
@@ -60,46 +55,35 @@
 
     <!-- Sidebar Lateral -->
     <div class="w-72 bg-slate-900 text-white flex flex-col shadow-xl overflow-y-auto z-40">
-        <div class="p-6 text-2xl font-bold border-b border-slate-800 flex items-center gap-2"><span class="text-blue-500">A3</span>Sinergy <span class="text-[10px] bg-blue-600 px-2 py-1 rounded-full text-white font-black ml-2 animate-pulse">CLOUD</span></div>
+        <div class="p-6 text-2xl font-bold border-b border-slate-800 flex items-center gap-2"><span class="text-blue-500">A3</span>Sinergy <span class="text-[10px] bg-blue-600 px-2 py-1 rounded-full text-white font-black ml-2 animate-pulse">ONLINE</span></div>
         <div class="p-4 space-y-6">
             <div class="space-y-2 border-b border-slate-800 pb-4">
                 <a href="Sin-POS.html" class="flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 transition text-slate-300"><span class="text-xl">🛒</span> <span class="font-semibold">Ir al Punto de Venta</span></a>
                 <button id="btn-menu-admin" onclick="window.irARutaAdmin()" class="hidden w-full flex items-center gap-4 text-left p-3 rounded bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white transition border border-red-800"><span class="text-xl">🛡️</span> <span class="font-bold">Panel de Administración</span></button>
             </div>
-            
             <div class="space-y-4">
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
                     <p class="text-[10px] text-slate-500 font-bold uppercase border-b border-slate-700 pb-1 mb-2">Variables Globales</p>
                     <div class="flex justify-between items-center"><span class="text-[10px] text-emerald-400 font-bold uppercase">Tasa BCV</span><span id="label-tasa-bcv" class="font-black text-white">0.00</span></div>
                     <div class="flex justify-between items-center"><span class="text-[10px] text-blue-400 font-bold uppercase">IVA Global</span><span id="label-iva-global" class="font-black text-white">0%</span></div>
                 </div>
-                
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
                     <p class="text-[11px] text-purple-400 font-bold uppercase mb-2">Categorías</p>
                     <div class="flex gap-1 mb-2">
-                        <input type="text" id="nueva-cat" placeholder="Nueva..." onkeypress="if(event.key === 'Enter') window.agregarCategoria()" class="w-full bg-slate-900 p-1.5 text-xs rounded border border-slate-700 outline-none focus:border-purple-500 text-white">
+                        <input type="text" id="nueva-cat" placeholder="Nueva..." onkeypress="if(event.key === 'Enter') window.agregarCategoria()" class="w-full bg-slate-900 p-1.5 text-xs rounded border border-slate-700 outline-none text-white">
                         <button onclick="window.agregarCategoria()" class="bg-purple-600 px-3 rounded font-bold hover:bg-purple-500 transition">+</button>
                     </div>
                     <ul id="lista-categorias" class="text-xs space-y-1 max-h-32 overflow-y-auto pr-1"></ul>
                 </div>
             </div>
-
-            <div class="text-center pt-4 pb-6 border-t border-slate-800">
-                <p class="text-[10px] text-slate-500 uppercase font-bold">Operador: <span id="label-operador" class="text-blue-400">---</span></p><button onclick="window.cerrarSesion()" class="text-xs text-red-400 hover:text-red-300 mt-2 underline">Cerrar Sesión</button>
-            </div>
+            <div class="text-center pt-4 pb-6 border-t border-slate-800"><p class="text-[10px] text-slate-500 uppercase font-bold">Operador: <span id="label-operador" class="text-blue-400">---</span></p><button onclick="window.cerrarSesion()" class="text-xs text-red-400 hover:text-red-300 mt-2 underline">Cerrar Sesión</button></div>
         </div>
     </div>
 
     <!-- Contenido Principal -->
     <div class="flex-1 flex flex-col overflow-y-auto">
         <header class="bg-white shadow-sm p-6 flex justify-between items-center border-b">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800 uppercase tracking-tighter">Inventario A3Sinergy</h1>
-                <p class="text-xs text-emerald-600 font-bold flex items-center gap-1">🟢 Cloud Sincronizado</p>
-            </div>
-            <div class="text-right">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base de Datos Activa</span>
-            </div>
+            <div><h1 class="text-2xl font-bold text-slate-800 uppercase tracking-tighter">Inventario A3Sinergy</h1><p class="text-xs text-emerald-600 font-bold flex items-center gap-1">🟢 Online Sincronizado</p></div>
         </header>
 
         <main class="p-6 space-y-6">
@@ -113,12 +97,12 @@
                     <div class="col-span-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><label class="text-[10px] font-bold text-blue-700">COSTO NETO ($)</label><input type="number" id="reg-costo" step="0.01" oninput="window.calcularTodo()" class="w-full bg-transparent text-lg font-black outline-none" placeholder="0.00"></div>
                     
                     <div class="col-span-3 grid grid-cols-3 gap-2 border p-2 rounded-lg bg-slate-50">
-                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Detal (%)</label><input type="number" id="reg-mdetal" oninput="window.calcularTodo()" value="24" class="w-full border p-1 rounded font-bold text-center outline-blue-500 text-sm"></div>
-                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Mayor (%)</label><input type="number" id="reg-mmayor" oninput="window.calcularTodo()" value="18" class="w-full border p-1 rounded font-bold text-center outline-blue-500 text-sm"></div>
-                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. G. Mayor (%)</label><input type="number" id="reg-mgran" oninput="window.calcularTodo()" value="13" class="w-full border p-1 rounded font-bold text-center outline-blue-500 text-sm"></div>
+                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Detal (%)</label><input type="number" id="reg-mdetal" oninput="window.calcularTodo()" value="24" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
+                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Mayor (%)</label><input type="number" id="reg-mmayor" oninput="window.calcularTodo()" value="18" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
+                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. G. Mayor (%)</label><input type="number" id="reg-mgran" oninput="window.calcularTodo()" value="13" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
                     </div>
 
-                    <div class="col-span-1"><label class="text-[10px] font-bold uppercase">Stock Mín. (Alerta)</label><input type="number" id="reg-min" class="w-full border p-2 rounded outline-blue-500 h-[34px] mt-1"></div>
+                    <div class="col-span-1"><label class="text-[10px] font-bold uppercase">Stock Mín. (Alerta)</label><input type="number" id="reg-min" class="w-full border p-2 rounded h-[34px] mt-1 outline-blue-500"></div>
 
                     <div class="col-span-3 grid grid-cols-3 gap-2 bg-slate-50 p-2 rounded-lg border border-dashed">
                         <div><label class="text-[10px] font-bold uppercase">PV Detal</label><div id="prev-detal" class="text-sm font-bold text-blue-700">$0.00</div></div>
@@ -133,9 +117,7 @@
             <div class="bg-white rounded-xl shadow-md border overflow-hidden">
                 <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
                     <input type="text" id="buscador" onkeyup="window.buscarProducto()" placeholder="🔍 Buscar por nombre o código..." class="w-1/3 border p-2 rounded outline-blue-500">
-                    <span class="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">
-                        📦 Items Creados: <span id="item-count" class="bg-blue-600 text-white px-2 py-0.5 rounded ml-1">0</span>
-                    </span>
+                    <span class="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">📦 Items Creados: <span id="item-count" class="bg-blue-600 text-white px-2 py-0.5 rounded ml-1">0</span></span>
                 </div>
                 <table class="w-full text-left">
                     <thead class="bg-slate-900 text-white text-[10px] uppercase">
@@ -148,9 +130,8 @@
     </div>
 
     <!-- Modal Edición de Producto -->
-    <div id="modal-edicion" class="fixed inset-0 bg-slate-900/80 z-[150] hidden flex justify-center items-center p-4 backdrop-blur-sm"><div class="bg-white rounded-xl shadow-2xl w-[90%] max-w-4xl overflow-hidden animate-pop"><div class="bg-slate-900 p-4 flex justify-between items-center text-white"><h2 class="font-bold uppercase tracking-wide">Modificar Detalles</h2><button onclick="window.cerrarModalEdicion()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button></div><div class="p-6 grid grid-cols-1 md:grid-cols-5 gap-4"><input type="hidden" id="edit-id"><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CÓDIGO</label><input type="text" id="edit-codigo" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">REFERENCIA</label><input type="text" id="edit-ref" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div><div class="col-span-2"><label class="text-[10px] font-bold text-slate-500">DESCRIPCIÓN</label><input type="text" id="edit-nombre" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CATEGORÍA</label><select id="edit-cat" class="w-full border p-2 rounded bg-slate-50 font-semibold outline-blue-500"></select></div><div class="col-span-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><label class="text-[10px] font-bold text-blue-700">COSTO NETO ($)</label><input type="number" id="edit-costo" step="0.01" class="w-full bg-transparent text-lg font-black outline-none"></div><div class="col-span-3 grid grid-cols-3 gap-2 border p-2 rounded-lg bg-slate-50"><div><label class="text-[10px] font-bold uppercase text-slate-500">M. Detal (%)</label><input type="number" id="edit-mdetal" class="w-full border p-1 rounded font-bold text-center outline-blue-500 text-sm"></div><div><label class="text-[10px] font-bold uppercase text-slate-500">M. Mayor (%)</label><input type="number" id="edit-mmayor" class="w-full border p-1 rounded font-bold text-center outline-blue-500 text-sm"></div><div><label class="text-[10px] font-bold uppercase text-slate-500">M. G. Mayor (%)</label><input type="number" id="edit-mgran" class="w-full border p-1 rounded font-bold text-center outline-blue-500 text-sm"></div></div><div class="col-span-1"><label class="text-[10px] font-bold uppercase">Stock Mínimo</label><input type="number" id="edit-min" class="w-full border p-2 rounded outline-blue-500 h-[34px] mt-1"></div><div class="col-span-5 flex gap-4 mt-2"><button onclick="window.cerrarModalEdicion()" class="w-1/3 bg-slate-200 text-slate-700 py-3 rounded-lg font-bold shadow hover:bg-slate-300 transition uppercase">Cancelar</button><button onclick="window.guardarEdicion()" class="w-2/3 bg-blue-600 text-white py-3 rounded-lg font-bold shadow hover:bg-blue-700 transition uppercase">Guardar Cambios</button></div></div></div></div>
+    <div id="modal-edicion" class="fixed inset-0 bg-slate-900/80 z-[150] hidden flex justify-center items-center p-4 backdrop-blur-sm"><div class="bg-white rounded-xl shadow-2xl w-[90%] max-w-4xl overflow-hidden animate-pop"><div class="bg-slate-900 p-4 flex justify-between items-center text-white"><h2 class="font-bold uppercase tracking-wide">Modificar Detalles</h2><button onclick="window.cerrarModalEdicion()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button></div><div class="p-6 grid grid-cols-1 md:grid-cols-5 gap-4"><input type="hidden" id="edit-id"><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CÓDIGO</label><input type="text" id="edit-codigo" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></div><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">REFERENCIA</label><input type="text" id="edit-ref" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></div><div class="col-span-2"><label class="text-[10px] font-bold text-slate-500">DESCRIPCIÓN</label><input type="text" id="edit-nombre" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></div><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CATEGORÍA</label><select id="edit-cat" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></select></div><div class="col-span-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><label class="text-[10px] font-bold text-blue-700">COSTO NETO ($)</label><input type="number" id="edit-costo" step="0.01" class="w-full bg-transparent text-lg font-black outline-none"></div><div class="col-span-3 grid grid-cols-3 gap-2 border p-2 rounded-lg bg-slate-50"><div><label class="text-[10px] font-bold uppercase text-slate-500">M. Detal (%)</label><input type="number" id="edit-mdetal" class="w-full border p-1 rounded font-bold text-center outline-blue-500"></div><div><label class="text-[10px] font-bold uppercase text-slate-500">M. Mayor (%)</label><input type="number" id="edit-mmayor" class="w-full border p-1 rounded font-bold text-center outline-blue-500"></div><div><label class="text-[10px] font-bold uppercase text-slate-500">M. G. Mayor (%)</label><input type="number" id="edit-mgran" class="w-full border p-1 rounded font-bold text-center outline-blue-500"></div></div><div class="col-span-1"><label class="text-[10px] font-bold uppercase">Stock Mínimo</label><input type="number" id="edit-min" class="w-full border p-2 rounded mt-1 h-[34px] outline-blue-500"></div><div class="col-span-5 flex gap-4 mt-2"><button onclick="window.cerrarModalEdicion()" class="w-1/3 bg-slate-200 text-slate-700 py-3 rounded-lg font-bold shadow transition uppercase hover:bg-slate-300">Cancelar</button><button onclick="window.guardarEdicion()" class="w-2/3 bg-blue-600 text-white py-3 rounded-lg font-bold shadow transition uppercase hover:bg-blue-700">Guardar Cambios</button></div></div></div></div>
 
-    <!-- SCRIPT FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -162,30 +143,37 @@
         let usuariosDB_nube = []; let sesionA3 = JSON.parse(localStorage.getItem('a3_sesion_inv')) || null; let usuarioTemp = null;
         const loader = document.getElementById('loader-nube');
 
-        // ==========================================
-        // LÓGICA DEL MOTOR DE MODALES UNIVERSALES
-        // ==========================================
-        let globalCallbackOk = null; let globalCallbackCancel = null;
+        // Modal Global
         window.mostrarModalGlobal = function(tipo, titulo, mensaje, valorPrompt = '', callbackOk = null, callbackCancel = null) {
             const m = document.getElementById('modal-custom-global'); const b = document.getElementById('modal-global-border'); const i = document.getElementById('modal-global-icon'); const t = document.getElementById('modal-global-title'); const msg = document.getElementById('modal-global-message'); const inp = document.getElementById('modal-global-input'); const btnC = document.getElementById('btn-global-cancel'); const btnO = document.getElementById('btn-global-ok');
-            t.innerText = titulo; msg.innerHTML = mensaje.replace(/\n/g, '<br>'); globalCallbackOk = callbackOk; globalCallbackCancel = callbackCancel;
-            inp.classList.add('hidden'); btnC.classList.add('hidden'); inp.value = valorPrompt; inp.classList.remove('border-blue-500', 'focus:border-blue-500');
-
-            if (tipo === 'error') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-red-500 animate-pop"; i.innerText="❌"; btnO.className="w-full bg-red-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-red-700 transition uppercase"; }
-            else if (tipo === 'exito') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-emerald-500 animate-pop"; i.innerText="✅"; btnO.className="w-full bg-emerald-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-emerald-700 transition uppercase"; }
-            else if (tipo === 'confirmacion') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-orange-500 animate-pop"; i.innerText="⚠️"; btnC.classList.remove('hidden'); btnO.className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black shadow-lg hover:bg-orange-600 transition uppercase"; }
-            else if (tipo === 'prompt') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-blue-500 animate-pop"; i.innerText="✏️"; btnC.classList.remove('hidden'); inp.classList.remove('hidden'); inp.classList.add('focus:border-blue-500'); btnO.className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-blue-700 transition uppercase"; setTimeout(()=>inp.focus(), 100); }
-            m.classList.remove('hidden');
+            t.innerText = titulo; msg.innerHTML = mensaje.replace(/\n/g, '<br>'); window.globalCallbackOk = callbackOk; window.globalCallbackCancel = callbackCancel;
+            inp.classList.add('hidden'); btnC.classList.add('hidden'); inp.value = valorPrompt; 
+            if (tipo === 'error') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-red-500 animate-pop"; i.innerText="❌"; btnO.className="w-full bg-red-600 text-white py-3 rounded-xl font-black transition"; }
+            else if (tipo === 'exito') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-emerald-500 animate-pop"; i.innerText="✅"; btnO.className="w-full bg-emerald-600 text-white py-3 rounded-xl font-black transition"; }
+            else if (tipo === 'confirmacion') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-orange-500 animate-pop"; i.innerText="⚠️"; btnC.classList.remove('hidden'); btnO.className="flex-1 bg-orange-500 text-white py-3 rounded-xl font-black transition"; }
+            else if (tipo === 'prompt') { b.className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-blue-500 animate-pop"; i.innerText="✏️"; btnC.classList.remove('hidden'); inp.classList.remove('hidden'); btnO.className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black transition"; }
+            m.classList.remove('hidden'); setTimeout(()=> {if(!inp.classList.contains('hidden')) inp.focus(); else btnO.focus(); }, 100);
         }
+        document.getElementById('btn-global-ok').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(window.globalCallbackOk) window.globalCallbackOk(document.getElementById('modal-global-input').value); }
+        document.getElementById('btn-global-cancel').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(window.globalCallbackCancel) window.globalCallbackCancel(); }
 
-        document.getElementById('btn-global-ok').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(globalCallbackOk) { const isPrompt = !document.getElementById('modal-global-input').classList.contains('hidden'); if(isPrompt) globalCallbackOk(document.getElementById('modal-global-input').value); else globalCallbackOk(); } }
-        document.getElementById('btn-global-cancel').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(globalCallbackCancel) globalCallbackCancel(); }
-
-        onSnapshot(collection(db, "usuarios"), (snapshot) => { usuariosDB_nube = []; snapshot.forEach((doc) => usuariosDB_nube.push({ id: doc.id, ...doc.data() })); });
+        onSnapshot(collection(db, "usuarios"), (snapshot) => { usuariosDB_nube = []; snapshot.forEach((doc) => usuariosDB_nube.push({ id: doc.id, ...doc.data() })); if(usuariosDB_nube.length === 0) setDoc(doc(db, "usuarios", "admin_master"), { username: "admin", password: "123", role: "admin", sede: "Principal" }); });
         
         window.checkLogin = function() { const preAuth = JSON.parse(localStorage.getItem('a3_pre_auth_inv')); if (preAuth) { localStorage.removeItem('a3_pre_auth_inv'); sesionA3 = { activa: true, username: preAuth.username, role: preAuth.role, sede: preAuth.sede || 'Principal' }; localStorage.setItem('a3_sesion_inv', JSON.stringify(sesionA3)); } if (!sesionA3 || !sesionA3.activa) { document.getElementById('modal-login').classList.remove('hidden'); } else { document.getElementById('modal-login').classList.add('hidden'); document.getElementById('label-operador').innerText = sesionA3.username + ` (${sesionA3.role})`; if(sesionA3.role === 'admin') document.getElementById('btn-menu-admin').classList.remove('hidden'); } }
         
-        window.verificarLogin = function() { const user = document.getElementById('login-usuario').value.trim().toLowerCase(); const pass = document.getElementById('login-clave').value; const usuarioValido = usuariosDB_nube.find(u => u.username.toLowerCase() === user && u.password === pass); if (usuarioValido) { if (usuarioValido.role === 'admin') { usuarioTemp = usuarioValido; document.getElementById('modal-login').classList.add('hidden'); document.getElementById('modal-ruta-admin').classList.remove('hidden'); } else { sesionA3 = { activa: true, username: usuarioValido.username, role: usuarioValido.role, sede: usuarioValido.sede || 'Principal' }; localStorage.setItem('a3_sesion_inv', JSON.stringify(sesionA3)); window.checkLogin(); } } else { window.mostrarModalGlobal('error', 'Error de Acceso', 'Credenciales incorrectas.'); document.getElementById('login-clave').value = ''; } }
+        window.verificarLogin = function() { 
+            const user = document.getElementById('login-usuario').value.trim().toLowerCase(); const pass = document.getElementById('login-clave').value; 
+            const usuarioValido = usuariosDB_nube.find(u => u.username.toLowerCase() === user && u.password === pass); 
+            if (usuarioValido) { 
+                if (usuarioValido.role === 'admin') { 
+                    usuarioTemp = usuarioValido; document.getElementById('modal-login').classList.add('hidden'); document.getElementById('modal-ruta-admin').classList.remove('hidden'); 
+                } else { 
+                    // Es Cajero, lo mandamos directo al POS
+                    localStorage.setItem('a3_pre_auth_pos', JSON.stringify({ username: usuarioValido.username, role: usuarioValido.role, sede: usuarioValido.sede || 'Principal' })); 
+                    window.location.href = 'Sin-POS.html';
+                } 
+            } else { window.mostrarModalGlobal('error', 'Error de Acceso', 'Credenciales incorrectas.'); document.getElementById('login-clave').value = ''; } 
+        }
         window.irARuta = function(destino) { if (destino === 'inventario') { sesionA3 = { activa: true, username: usuarioTemp.username, role: usuarioTemp.role, sede: usuarioTemp.sede || 'Principal' }; localStorage.setItem('a3_sesion_inv', JSON.stringify(sesionA3)); document.getElementById('modal-ruta-admin').classList.add('hidden'); window.checkLogin(); } else if (destino === 'pos') { localStorage.setItem('a3_pre_auth_pos', JSON.stringify({ username: usuarioTemp.username, role: usuarioTemp.role, sede: usuarioTemp.sede || 'Principal' })); window.location.href = 'Sin-POS.html'; } else if (destino === 'admin') { localStorage.setItem('a3_sesion_admin', JSON.stringify({ activa: true, username: usuarioTemp.username, role: usuarioTemp.role })); window.location.href = 'Sin-Admin.html'; } }
         window.irARutaAdmin = function() { localStorage.setItem('a3_sesion_admin', JSON.stringify({ activa: true, username: sesionA3.username, role: sesionA3.role })); window.location.href = 'Sin-Admin.html'; }
         window.cerrarSesion = function() { sesionA3 = null; localStorage.removeItem('a3_sesion_inv'); window.location.reload(); }
@@ -197,66 +185,17 @@
         window.actualizarInterfazCats = function() { const select = document.getElementById('reg-cat'); const selectEdit = document.getElementById('edit-cat'); const listaUl = document.getElementById('lista-categorias'); select.innerHTML = ''; selectEdit.innerHTML = ''; listaUl.innerHTML = ''; categorias.forEach((cat, index) => { select.innerHTML += `<option value="${cat}">${cat}</option>`; selectEdit.innerHTML += `<option value="${cat}">${cat}</option>`; listaUl.innerHTML += `<li class="flex justify-between items-center bg-slate-900 p-1.5 rounded border border-slate-700 hover:border-slate-500 transition mb-1 group"><span class="truncate pl-1 text-slate-300 font-semibold group-hover:text-white transition">${cat}</span><div class="flex gap-1 opacity-50 group-hover:opacity-100 transition"><button onclick="window.editarCategoria(${index})" class="text-blue-400 hover:text-blue-300 bg-slate-800 p-1 rounded transition" title="Renombrar">✏️</button><button onclick="window.eliminarCategoria(${index})" class="text-red-400 hover:text-red-300 bg-slate-800 p-1 rounded transition font-black" title="Eliminar">✖</button></div></li>`; }); }
         
         window.agregarCategoria = async function() { const input = document.getElementById('nueva-cat'); const nueva = input.value.trim(); if(!nueva) return; if(categorias.includes(nueva)) return window.mostrarModalGlobal('error', 'Duplicado', 'Esta categoría ya existe.'); loader.classList.remove('hidden'); const nuevaLista = [...categorias, nueva]; await setDoc(doc(db, "sistema", "categorias"), { lista: nuevaLista }); input.value = ''; loader.classList.add('hidden'); }
-        
-        window.editarCategoria = function(index) { 
-            const catAntigua = categorias[index]; 
-            window.mostrarModalGlobal('prompt', 'Renombrar Categoría', `Vas a renombrar "${catAntigua}".\n(Esto actualizará automáticamente todos los productos enlazados)`, catAntigua, async function(nuevaCat) { 
-                if(nuevaCat !== null && nuevaCat.trim() !== '' && nuevaCat.trim() !== catAntigua) { 
-                    const catFormateada = nuevaCat.trim(); 
-                    if(categorias.includes(catFormateada)) return window.mostrarModalGlobal('error', 'Error', 'Ese nombre de categoría ya está en uso.'); 
-                    loader.classList.remove('hidden'); 
-                    let nuevaLista = [...categorias]; nuevaLista[index] = catFormateada; 
-                    await setDoc(doc(db, "sistema", "categorias"), { lista: nuevaLista }); 
-                    const batchPromises = []; 
-                    inventario.forEach(p => { if(p.cat === catAntigua) { batchPromises.push(updateDoc(doc(db, "inventario", p.id), { cat: catFormateada })); } }); 
-                    if(batchPromises.length > 0) { await Promise.all(batchPromises); window.mostrarModalGlobal('exito', 'Éxito', `Categoría actualizada.\nSe reasignaron ${batchPromises.length} productos.`); } 
-                    loader.classList.add('hidden'); 
-                } 
-            }); 
-        }
-        
-        window.eliminarCategoria = function(index) { 
-            const cat = categorias[index]; 
-            window.mostrarModalGlobal('confirmacion', 'Eliminar Categoría', `⚠️ ¿Seguro que deseas eliminar la categoría "${cat}"?\n\nLos productos que la tengan quedarán huérfanos.`, '', async function() { 
-                loader.classList.remove('hidden'); 
-                let nuevaLista = [...categorias]; nuevaLista.splice(index, 1); 
-                await setDoc(doc(db, "sistema", "categorias"), { lista: nuevaLista }); 
-                loader.classList.add('hidden'); 
-            }); 
-        }
+        window.editarCategoria = function(index) { const catAntigua = categorias[index]; window.mostrarModalGlobal('prompt', 'Renombrar Categoría', `Vas a renombrar "${catAntigua}".\n(Esto actualizará automáticamente todos los productos enlazados)`, catAntigua, async function(nuevaCat) { if(nuevaCat !== null && nuevaCat.trim() !== '' && nuevaCat.trim() !== catAntigua) { const catFormateada = nuevaCat.trim(); if(categorias.includes(catFormateada)) return window.mostrarModalGlobal('error', 'Error', 'Ese nombre de categoría ya está en uso.'); loader.classList.remove('hidden'); let nuevaLista = [...categorias]; nuevaLista[index] = catFormateada; await setDoc(doc(db, "sistema", "categorias"), { lista: nuevaLista }); const batchPromises = []; inventario.forEach(p => { if(p.cat === catAntigua) { batchPromises.push(updateDoc(doc(db, "inventario", p.id), { cat: catFormateada })); } }); if(batchPromises.length > 0) { await Promise.all(batchPromises); window.mostrarModalGlobal('exito', 'Éxito', `Categoría actualizada.\nSe reasignaron ${batchPromises.length} productos.`); } loader.classList.add('hidden'); } }); }
+        window.eliminarCategoria = function(index) { const cat = categorias[index]; window.mostrarModalGlobal('confirmacion', 'Eliminar Categoría', `⚠️ ¿Seguro que deseas eliminar la categoría "${cat}"?\n\nLos productos que la tengan quedarán huérfanos.`, '', async function() { loader.classList.remove('hidden'); let nuevaLista = [...categorias]; nuevaLista.splice(index, 1); await setDoc(doc(db, "sistema", "categorias"), { lista: nuevaLista }); loader.classList.add('hidden'); }); }
 
-        window.agregarProducto = async function() { 
-            const nom = document.getElementById('reg-nombre').value; const costo = parseFloat(document.getElementById('reg-costo').value) || 0; const codIngresado = document.getElementById('reg-codigo').value.trim();
-            if(!nom || costo <= 0) return window.mostrarModalGlobal('error', 'Datos Incompletos', 'Costo y Descripción son campos obligatorios.'); 
-            if (codIngresado !== '') { const existe = inventario.find(p => p.codigo && p.codigo.toLowerCase() === codIngresado.toLowerCase() && p.codigo !== 'S/C'); if (existe) { return window.mostrarModalGlobal('error', 'Item Duplicado', `El código "${codIngresado}" ya pertenece a otro artículo.`); } }
-            loader.classList.remove('hidden'); const idUnico = Date.now().toString(); 
-            const nuevo = { codigo: codIngresado || 'S/C', ref: document.getElementById('reg-ref').value || 'N/A', nombre: nom, cat: document.getElementById('reg-cat').value, costo: costo, mDetal: parseFloat(document.getElementById('reg-mdetal').value) || 0, mMayor: parseFloat(document.getElementById('reg-mmayor').value) || 0, mGran: parseFloat(document.getElementById('reg-mgran').value) || 0, existencia: 0, stockSedes: {}, stockMin: parseInt(document.getElementById('reg-min').value) || 0 }; 
-            await setDoc(doc(db, "inventario", idUnico), nuevo); window.limpiar(); loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Registro Exitoso', 'Item registrado correctamente.\n\nRecuerda ir al Panel Admin para cargar su stock inicial.');
-        }
+        window.agregarProducto = async function() { const nom = document.getElementById('reg-nombre').value; const costo = parseFloat(document.getElementById('reg-costo').value) || 0; const codIngresado = document.getElementById('reg-codigo').value.trim(); if(!nom || costo <= 0) return window.mostrarModalGlobal('error', 'Datos Incompletos', 'Costo y Descripción son campos obligatorios.'); if (codIngresado !== '') { const existe = inventario.find(p => p.codigo && p.codigo.toLowerCase() === codIngresado.toLowerCase() && p.codigo !== 'S/C'); if (existe) { return window.mostrarModalGlobal('error', 'Item Duplicado', `El código "${codIngresado}" ya pertenece a otro artículo.`); } } loader.classList.remove('hidden'); const idUnico = Date.now().toString(); const nuevo = { codigo: codIngresado || 'S/C', ref: document.getElementById('reg-ref').value || 'N/A', nombre: nom, cat: document.getElementById('reg-cat').value, costo: costo, mDetal: parseFloat(document.getElementById('reg-mdetal').value) || 0, mMayor: parseFloat(document.getElementById('reg-mmayor').value) || 0, mGran: parseFloat(document.getElementById('reg-mgran').value) || 0, existencia: 0, stockSedes: {}, stockMin: parseInt(document.getElementById('reg-min').value) || 0 }; await setDoc(doc(db, "inventario", idUnico), nuevo); window.limpiar(); loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Registro Exitoso', 'Item registrado correctamente.\n\nRecuerda ir al Panel Admin para cargar su stock inicial.'); }
 
-        window.renderizar = function(filtro = '') { 
-            const tbody = document.getElementById('tabla-body'); tbody.innerHTML = ''; const tasa = config.tasa; const iva = config.iva / 100; 
-            const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.toLowerCase().includes(filtro) || p.ref.toLowerCase().includes(filtro)); 
-            document.getElementById('item-count').innerText = inventario.length;
-
-            filtrados.forEach(p => { 
-                const fPrice = (marg) => { const val = p.costo * (1 + (marg/100)) * (1 + iva); return `<b>$${val.toFixed(2)}</b><div class='text-[9px] text-slate-400'>Bs. ${(val * tasa).toLocaleString('es-VE')}</div>`; }; 
-                tbody.innerHTML += `<tr class="hover:bg-blue-50 transition border-l-4 border-transparent hover:border-blue-500"><td class="p-4"><b>${p.codigo}</b><br><span class='text-[9px] uppercase'>${p.ref}</span></td><td class="p-4"><b>${p.nombre}</b><br><span class='text-[9px] text-blue-600 uppercase'>${p.cat}</span></td><td class="p-4 text-blue-800">${fPrice(p.mDetal || 0)}</td><td class="p-4 text-emerald-800">${fPrice(p.mMayor || 0)}</td><td class="p-4 text-purple-800">${fPrice(p.mGran || 0)}</td><td class="p-4 text-center"><button onclick="window.modificarValores('${p.id}')" class="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200 mr-1">✏️</button><button onclick="window.eliminarProd('${p.id}')" class="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200">🗑️</button></td></tr>`; 
-            }); 
-        }
+        window.renderizar = function(filtro = '') { const tbody = document.getElementById('tabla-body'); tbody.innerHTML = ''; const tasa = config.tasa; const iva = config.iva / 100; const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.toLowerCase().includes(filtro) || p.ref.toLowerCase().includes(filtro)); document.getElementById('item-count').innerText = inventario.length; filtrados.forEach(p => { const fPrice = (marg) => { const val = p.costo * (1 + (marg/100)) * (1 + iva); return `<b>$${val.toFixed(2)}</b><div class='text-[9px] text-slate-400'>Bs. ${(val * tasa).toLocaleString('es-VE')}</div>`; }; tbody.innerHTML += `<tr class="hover:bg-blue-50 transition border-l-4 border-transparent hover:border-blue-500"><td class="p-4"><b>${p.codigo}</b><br><span class='text-[9px] uppercase'>${p.ref}</span></td><td class="p-4"><b>${p.nombre}</b><br><span class='text-[9px] text-blue-600 uppercase'>${p.cat}</span></td><td class="p-4 text-blue-800">${fPrice(p.mDetal || 0)}</td><td class="p-4 text-emerald-800">${fPrice(p.mMayor || 0)}</td><td class="p-4 text-purple-800">${fPrice(p.mGran || 0)}</td><td class="p-4 text-center"><button onclick="window.modificarValores('${p.id}')" class="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200 mr-1">✏️</button><button onclick="window.eliminarProd('${p.id}')" class="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200">🗑️</button></td></tr>`; }); }
         
         window.modificarValores = function(id) { const p = inventario.find(x => x.id === id); if (!p) return; document.getElementById('edit-id').value = p.id; document.getElementById('edit-codigo').value = p.codigo || ''; document.getElementById('edit-ref').value = p.ref || ''; document.getElementById('edit-nombre').value = p.nombre || ''; document.getElementById('edit-cat').value = p.cat || ''; document.getElementById('edit-costo').value = p.costo || 0; document.getElementById('edit-mdetal').value = p.mDetal || 0; document.getElementById('edit-mmayor').value = p.mMayor || 0; document.getElementById('edit-mgran').value = p.mGran || 0; document.getElementById('edit-min').value = p.stockMin || 0; document.getElementById('modal-edicion').classList.remove('hidden'); }
         window.cerrarModalEdicion = function() { document.getElementById('modal-edicion').classList.add('hidden'); }
         window.guardarEdicion = async function() { const id = document.getElementById('edit-id').value; const nuevoNombre = document.getElementById('edit-nombre').value; const nuevoCosto = parseFloat(document.getElementById('edit-costo').value) || 0; if (!nuevoNombre || nuevoCosto <= 0) return; loader.classList.remove('hidden'); await updateDoc(doc(db, "inventario", id), { codigo: document.getElementById('edit-codigo').value || 'S/C', ref: document.getElementById('edit-ref').value || 'N/A', nombre: nuevoNombre, cat: document.getElementById('edit-cat').value, costo: nuevoCosto, mDetal: parseFloat(document.getElementById('edit-mdetal').value) || 0, mMayor: parseFloat(document.getElementById('edit-mmayor').value) || 0, mGran: parseFloat(document.getElementById('edit-mgran').value) || 0, stockMin: parseInt(document.getElementById('edit-min').value) || 0 }); window.cerrarModalEdicion(); loader.classList.add('hidden'); }
-        
-        window.eliminarProd = function(id) { 
-            window.mostrarModalGlobal('confirmacion', 'Eliminar Artículo', '¿Estás seguro de eliminar este artículo de la base de datos?\nEsta acción es irreversible.', '', async function() { 
-                loader.classList.remove('hidden');
-                await deleteDoc(doc(db, "inventario", id)); 
-                loader.classList.add('hidden');
-            }); 
-        }
-
+        window.eliminarProd = function(id) { window.mostrarModalGlobal('confirmacion', 'Eliminar Artículo', '¿Estás seguro de eliminar este artículo de la base de datos?\nEsta acción es irreversible.', '', async function() { loader.classList.remove('hidden'); await deleteDoc(doc(db, "inventario", id)); loader.classList.add('hidden'); }); }
         window.buscarProducto = function() { window.renderizar(document.getElementById('buscador').value.toLowerCase()); }
         window.limpiar = function() { document.getElementById('reg-codigo').value = ''; document.getElementById('reg-ref').value = ''; document.getElementById('reg-nombre').value = ''; document.getElementById('reg-costo').value = ''; document.getElementById('reg-min').value = ''; document.getElementById('prev-detal').innerText = "$0.00"; document.getElementById('prev-mayor').innerText = "$0.00"; document.getElementById('prev-gran').innerText = "$0.00"; }
         window.calcularTodo = function() { const costo = parseFloat(document.getElementById('reg-costo').value) || 0; const iva = config.iva/100; const md = (parseFloat(document.getElementById('reg-mdetal').value) || 0)/100; const mm = (parseFloat(document.getElementById('reg-mmayor').value) || 0)/100; const mg = (parseFloat(document.getElementById('reg-mgran').value) || 0)/100; if(costo > 0) { const f = (m) => (costo * (1 + m) * (1 + iva)).toFixed(2); document.getElementById('prev-detal').innerText = `$${f(md)}`; document.getElementById('prev-mayor').innerText = `$${f(mm)}`; document.getElementById('prev-gran').innerText = `$${f(mg)}`; } else { document.getElementById('prev-detal').innerText = "$0.00"; document.getElementById('prev-mayor').innerText = "$0.00"; document.getElementById('prev-gran').innerText = "$0.00"; } }
