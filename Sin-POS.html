@@ -349,61 +349,63 @@
 
         onSnapshot(collection(db, "clientes"), (snap) => { clientesGlobal = []; snap.forEach(d => clientesGlobal.push({id: d.id, ...d.data()})); });
 
-        // IMPLEMENTACIÓN REESCRITA DE LA API (solo números, por defecto 'V')
+        // IMPLEMENTACIÓN SEGURA VÍA NETLIFY (Solo números, V por defecto)
         window.buscarClientePOS = async function() {
-            const rawInput = document.getElementById('pos-cliente-ci').value.trim().toUpperCase(); 
+            const rawInput = document.getElementById('pos-cliente-ci').value.trim(); 
             if(!rawInput) return;
 
-            // Extraer SOLAMENTE los números del input, ignorando si ponen V, -, espacios o texto
-            const cedulaNumeros = rawInput.replace(/\D/g, '');
+            // Extraer solo números y forzar nacionalidad V
+            const cedulaNumeros = rawInput.replace(/\D/g, ''); 
             if(!cedulaNumeros) {
-                return window.mostrarModalGlobal('error', 'Formato Inválido', 'Ingresa un número de cédula válido.');
+                return window.mostrarModalGlobal('error', 'Formato Inválido', 'Ingresa solo los números de la cédula.');
             }
 
-            // Forzar nacionalidad V como lo pediste
-            const nacionalidad = 'V'; 
-            
-            // Re-formatear el input visualmente para que en la BD y facturas se vea ordenado (Ej: V12345678)
+            const nacionalidad = 'V';
             const idLocal = `${nacionalidad}${cedulaNumeros}`; 
+            
+            // Actualizar el campo visualmente (Ej: de "29876021" a "V29876021")
             document.getElementById('pos-cliente-ci').value = idLocal;
-
             document.getElementById('loader-nube').classList.remove('hidden');
 
             try {
-                // Tus credenciales directas de api.cedula.com.ve
-                const APP_ID = "3101"; 
-                const TOKEN = "d51c7863f4dc6d1979578f084ad2bdc0";
-                const API_URL = `https://api.cedula.com.ve/api/v1?app_id=${APP_ID}&token=${TOKEN}&nacionalidad=${nacionalidad}&cedula=${cedulaNumeros}`;
-
-                const respuesta = await fetch(API_URL);
+                // Llamada a tu API en Netlify
+                const PROXY_URL = `/.netlify/functions/api?nacionalidad=${nacionalidad}&cedula=${cedulaNumeros}`;
+                
+                const respuesta = await fetch(PROXY_URL);
+                
+                if (!respuesta.ok) throw new Error("Error en servidor proxy");
+                
                 const json = await respuesta.json();
 
-                // Validamos según la estructura JSON de la documentación
                 if (json && json.error === false && json.data) {
+                    const d = json.data;
                     const nombreCompleto = [
-                        json.data.primer_nombre, 
-                        json.data.segundo_nombre, 
-                        json.data.primer_apellido, 
-                        json.data.segundo_apellido
+                        d.primer_nombre, 
+                        d.segundo_nombre, 
+                        d.primer_apellido, 
+                        d.segundo_apellido
                     ].filter(Boolean).join(' ');
 
                     document.getElementById('pos-cliente-nombre').value = nombreCompleto;
-                    // Guardar en Firebase local para agilizar futuras consultas
+                    
+                    // Guardar en Firebase local
                     await setDoc(doc(db, "clientes", idLocal), { nombre: nombreCompleto });
                     document.getElementById('loader-nube').classList.add('hidden');
                     return;
                 }
             } catch (err) {
-                console.error("Error conectando con la API de Cédulas:", err);
+                console.error("Error en la consulta de identidad:", err);
             }
 
-            // Si la API falla, no responde o la cédula no existe, buscar en Firebase local
+            // Si la API falla o no existe el registro, buscar en caché local de Firebase
             const cli = clientesGlobal.find(c => c.id === idLocal);
             if(cli) { 
                 document.getElementById('pos-cliente-nombre').value = cli.nombre; 
             } else { 
-                // Fallback final: Pedir el nombre manualmente
-                window.mostrarModalGlobal('prompt', 'Cliente Nuevo', `La CI <b>${idLocal}</b> no está en la base de datos nacional ni local.<br>Ingresa el nombre manualmente:`, '', async function(n) { 
+                // Fallback manual
+                window.mostrarModalGlobal('prompt', 'Cliente Nuevo', 
+                    `La CI <b>${idLocal}</b> no pudo ser verificada automáticamente.<br>Por favor, ingresa el nombre manualmente:`, 
+                    '', async function(n) { 
                     if(n && n.trim() !== '') { 
                         document.getElementById('loader-nube').classList.remove('hidden'); 
                         await setDoc(doc(db, "clientes", idLocal), { nombre: n.trim() }); 
