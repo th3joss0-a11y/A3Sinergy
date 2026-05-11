@@ -349,20 +349,18 @@
 
         onSnapshot(collection(db, "clientes"), (snap) => { clientesGlobal = []; snap.forEach(d => clientesGlobal.push({id: d.id, ...d.data()})); });
 
-        // IMPLEMENTACIÓN DE API CEDULA.COM.VE EN BÚSQUEDA DE CLIENTE
+        // IMPLEMENTACIÓN DIRECTA DE LA API CEDULA.COM.VE
         window.buscarClientePOS = async function() {
             const rawCI = document.getElementById('pos-cliente-ci').value.trim().toUpperCase(); 
             if(!rawCI) return;
 
-            // Extraer Nacionalidad y Cédula para la API
-            const nacionalidad = rawCI.substring(0, 1); // V, E, o J
-            const cedula = rawCI.substring(1); // El resto del número
+            const nacionalidad = rawCI.substring(0, 1); 
+            const cedula = rawCI.substring(1);
 
             document.getElementById('loader-nube').classList.remove('hidden');
 
             try {
-                // 1. Intentar con la nueva API (cedula.com.ve)
-                // DEBES REEMPLAZAR 'ACA_TU_APP_ID' CON EL APP-ID DE TU CUENTA.
+                // Generando URL directa según la documentación enviada
                 const APP_ID = "3101"; 
                 const TOKEN = "d51c7863f4dc6d1979578f084ad2bdc0";
                 const API_URL = `https://api.cedula.com.ve/api/v1?app_id=${APP_ID}&token=${TOKEN}&nacionalidad=${nacionalidad}&cedula=${cedula}`;
@@ -379,7 +377,6 @@
                     ].filter(Boolean).join(' ');
 
                     document.getElementById('pos-cliente-nombre').value = nombreCompleto;
-                    // Guardar en Firebase para caché local
                     await setDoc(doc(db, "clientes", rawCI), { nombre: nombreCompleto });
                     document.getElementById('loader-nube').classList.add('hidden');
                     return;
@@ -388,12 +385,11 @@
                 console.error("Error conectando con la API de Cédulas:", err);
             }
 
-            // 2. Si falla la API o no lo encuentra, buscar en el historial local de Firebase (Behavior Original)
+            // Fallback original: buscar en el historial local de Firebase
             const cli = clientesGlobal.find(c => c.id === rawCI);
             if(cli) { 
                 document.getElementById('pos-cliente-nombre').value = cli.nombre; 
             } else { 
-                // 3. Si no existe en ningún lado, pedirlo manualmente
                 window.mostrarModalGlobal('prompt', 'Cliente Nuevo', `La CI <b>${rawCI}</b> no está en la base de datos nacional ni local.<br>Ingresa el nombre manualmente:`, '', async function(n) { 
                     if(n && n.trim() !== '') { 
                         document.getElementById('loader-nube').classList.remove('hidden'); 
