@@ -191,9 +191,6 @@
         const firebaseConfig = { apiKey: "AIzaSyBydRzHt9Ja3RYvBbXO7n6Cv6pyJqwIUbQ", authDomain: "sinergy-d78d0.firebaseapp.com", databaseURL: "https://sinergy-d78d0-default-rtdb.firebaseio.com", projectId: "sinergy-d78d0", storageBucket: "sinergy-d78d0.firebasestorage.app", messagingSenderId: "399343343582", appId: "1:399343343582:web:29c686fd7e229e8f20ef4f", measurementId: "G-H1DJ1KZBJJ" };
         const app = initializeApp(firebaseConfig); const db = getFirestore(app);
 
-        // 1. URL de tu API en Exos Code Labs (Netlify)
-        const API_URL = 'https://TU_URL_DE_NETLIFY.netlify.app/.netlify/functions/api';
-
         let inventario = []; 
         let carrito = []; 
         let config = { tasa: 36.50, iva: 16 }; let historialVentasPOS = []; let clientesGlobal = [];
@@ -352,7 +349,7 @@
 
         onSnapshot(collection(db, "clientes"), (snap) => { clientesGlobal = []; snap.forEach(d => clientesGlobal.push({id: d.id, ...d.data()})); });
 
-        // IMPLEMENTACIÓN DE API EXOS CODE LABS EN BÚSQUEDA DE CLIENTE
+        // IMPLEMENTACIÓN DE API CEDULA.COM.VE EN BÚSQUEDA DE CLIENTE
         window.buscarClientePOS = async function() {
             const rawCI = document.getElementById('pos-cliente-ci').value.trim().toUpperCase(); 
             if(!rawCI) return;
@@ -364,11 +361,16 @@
             document.getElementById('loader-nube').classList.remove('hidden');
 
             try {
-                // 1. Primero intentar con la API de Exos Code Labs
-                const respuesta = await fetch(`${API_URL}?nacionalidad=${nacionalidad}&cedula=${cedula}`);
+                // 1. Intentar con la nueva API (cedula.com.ve)
+                // DEBES REEMPLAZAR 'ACA_TU_APP_ID' CON EL APP-ID DE TU CUENTA.
+                const APP_ID = "3101"; 
+                const TOKEN = "d51c7863f4dc6d1979578f084ad2bdc0";
+                const API_URL = `https://api.cedula.com.ve/api/v1?app_id=${APP_ID}&token=${TOKEN}&nacionalidad=${nacionalidad}&cedula=${cedula}`;
+
+                const respuesta = await fetch(API_URL);
                 const json = await respuesta.json();
 
-                if (json && !json.error && json.data) {
+                if (json && json.error === false && json.data) {
                     const nombreCompleto = [
                         json.data.primer_nombre, 
                         json.data.segundo_nombre, 
