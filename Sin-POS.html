@@ -191,6 +191,29 @@
         const firebaseConfig = { apiKey: "AIzaSyBydRzHt9Ja3RYvBbXO7n6Cv6pyJqwIUbQ", authDomain: "sinergy-d78d0.firebaseapp.com", databaseURL: "https://sinergy-d78d0-default-rtdb.firebaseio.com", projectId: "sinergy-d78d0", storageBucket: "sinergy-d78d0.firebasestorage.app", messagingSenderId: "399343343582", appId: "1:399343343582:web:29c686fd7e229e8f20ef4f", measurementId: "G-H1DJ1KZBJJ" };
         const app = initializeApp(firebaseConfig); const db = getFirestore(app);
 
+        const API_URL = 'https://TU_URL_DE_NETLIFY.netlify.app/.netlify/functions/api';
+
+        async function buscarCliente(nacionalidad, cedula) {
+            try {
+                const respuesta = await fetch(`${API_URL}?nacionalidad=${nacionalidad}&cedula=${cedula}`);
+                const json = await respuesta.json();
+                
+                if (json.error) return null;
+                
+                // Retorna nombre completo
+                return [
+                    json.data.primer_nombre, 
+                    json.data.segundo_nombre, 
+                    json.data.primer_apellido, 
+                    json.data.segundo_apellido
+                ].filter(Boolean).join(' ');
+                
+            } catch (error) {
+                console.error('Error de API:', error);
+                return null;
+            }
+        }
+
         let inventario = []; 
         let carrito = []; 
         let config = { tasa: 36.50, iva: 16 }; let historialVentasPOS = []; let clientesGlobal = [];
@@ -348,11 +371,35 @@
         }
 
         onSnapshot(collection(db, "clientes"), (snap) => { clientesGlobal = []; snap.forEach(d => clientesGlobal.push({id: d.id, ...d.data()})); });
-        window.buscarClientePOS = function() {
+        
+        window.buscarClientePOS = async function() {
             const ci = document.getElementById('pos-cliente-ci').value.trim().toUpperCase(); if(!ci) return;
             const cli = clientesGlobal.find(c => c.id === ci);
-            if(cli) { document.getElementById('pos-cliente-nombre').value = cli.nombre; } 
-            else { window.mostrarModalGlobal('prompt', 'Cliente Nuevo', `La CI <b>${ci}</b> no existe.<br>Ingresa el nombre para guardarlo:`, '', async function(n) { if(n && n.trim() !== '') { document.getElementById('loader-nube').classList.remove('hidden'); await setDoc(doc(db, "clientes", ci), { nombre: n.trim() }); document.getElementById('pos-cliente-nombre').value = n.trim(); document.getElementById('loader-nube').classList.add('hidden'); } else { document.getElementById('pos-cliente-ci').value = ''; } }); }
+            
+            if(cli) { 
+                document.getElementById('pos-cliente-nombre').value = cli.nombre; 
+            } 
+            else { 
+                document.getElementById('loader-nube').classList.remove('hidden');
+                
+                let nacionalidad = ci.charAt(0);
+                let cedula = ci.replace(/\D/g, '');
+                
+                if(nacionalidad !== 'V' && nacionalidad !== 'E') {
+                    nacionalidad = 'V';
+                }
+
+                const nombreApi = await buscarCliente(nacionalidad, cedula);
+
+                if (nombreApi) {
+                    await setDoc(doc(db, "clientes", ci), { nombre: nombreApi });
+                    document.getElementById('pos-cliente-nombre').value = nombreApi;
+                    document.getElementById('loader-nube').classList.add('hidden');
+                } else {
+                    document.getElementById('loader-nube').classList.add('hidden');
+                    window.mostrarModalGlobal('prompt', 'Cliente Nuevo', `La CI <b>${ci}</b> no existe.<br>Ingresa el nombre para guardarlo:`, '', async function(n) { if(n && n.trim() !== '') { document.getElementById('loader-nube').classList.remove('hidden'); await setDoc(doc(db, "clientes", ci), { nombre: n.trim() }); document.getElementById('pos-cliente-nombre').value = n.trim(); document.getElementById('loader-nube').classList.add('hidden'); } else { document.getElementById('pos-cliente-ci').value = ''; } }); 
+                }
+            }
         }
 
         onSnapshot(collection(db, "ventas"), (snap) => { historialVentasPOS = []; snap.forEach(d => { const v = {id: d.id, ...d.data()}; if(v.sede === sedeActiva) historialVentasPOS.push(v); }); historialVentasPOS.sort((a,b) => b.id - a.id); window.renderizarHistorial(); });
