@@ -83,6 +83,38 @@
         </div>
     </div>
 
+    <!-- NUEVO MODAL PARA REGISTRO DE EMPRESAS / CLIENTES JURÍDICOS -->
+    <div id="modal-cliente-juridico" class="hidden fixed inset-0 bg-slate-900/90 z-[800] flex items-center justify-center p-4 backdrop-blur-sm no-print">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl text-center border-t-8 border-indigo-500 animate-pop">
+            <h3 class="text-2xl font-black text-slate-800 mb-2">🏢 Registrar Empresa</h3>
+            <p class="text-slate-500 font-medium mb-6 text-sm">Ingresa los datos del nuevo cliente jurídico.</p>
+            
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">RIF</label>
+                    <input type="text" id="jur-rif" disabled class="w-full border-2 p-3 rounded-xl font-bold bg-slate-100 text-slate-600 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Razón Social / Nombre</label>
+                    <input type="text" id="jur-nombre" placeholder="Ej: Inversiones Ejemplo C.A." class="w-full border-2 p-3 rounded-xl font-bold outline-indigo-500 text-slate-700">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Teléfono</label>
+                    <input type="text" id="jur-telefono" placeholder="Ej: 0414-1234567" class="w-full border-2 p-3 rounded-xl font-bold outline-indigo-500 text-slate-700">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Dirección (Opcional)</label>
+                    <input type="text" id="jur-direccion" placeholder="Ej: Zona Industrial, Galpón 4..." class="w-full border-2 p-3 rounded-xl font-bold outline-indigo-500 text-slate-700">
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-6">
+                <button onclick="window.cerrarModalJuridico()" class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition uppercase tracking-widest">Cancelar</button>
+                <button onclick="window.guardarClienteJuridico()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-indigo-700 transition uppercase tracking-widest">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-pago" class="hidden fixed inset-0 bg-slate-900/90 z-[300] flex items-center justify-center p-4 backdrop-blur-sm no-print">
         <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-pop text-center">
             <h3 class="text-2xl font-black text-slate-800 mb-1">💳 Distribución de Pago</h3>
@@ -160,7 +192,7 @@
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">🤝 Cliente (Cédula/RIF)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="pos-cliente-ci" placeholder="Ej: 12345678" onkeypress="if(event.key==='Enter') window.buscarClientePOS()" class="w-1/3 border-2 border-slate-200 p-2 rounded-lg font-bold outline-blue-500 text-sm bg-white uppercase shadow-sm">
+                            <input type="text" id="pos-cliente-ci" placeholder="Ej: V12345678 o J12345678" onkeypress="if(event.key==='Enter') window.buscarClientePOS()" class="w-1/3 border-2 border-slate-200 p-2 rounded-lg font-bold outline-blue-500 text-sm bg-white uppercase shadow-sm">
                             <input type="text" id="pos-cliente-nombre" placeholder="Presiona ENTER..." disabled class="w-2/3 border-2 border-slate-200 p-2 rounded-lg font-bold text-sm bg-slate-100 text-slate-500 shadow-inner">
                         </div>
                     </div>
@@ -327,7 +359,7 @@
         window.renderizarModalPreventas = function() {
             const tb = document.getElementById('tabla-preventas'); if(!tb) return; tb.innerHTML = '';
             facturasPendientes.forEach(f => {
-                tb.innerHTML += `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="p-3 font-bold text-slate-700">${f.cliente}<br><span class="text-[10px] text-slate-400 font-normal">CI: ${f.clienteCI}</span></td><td class="p-3 text-xs text-blue-600 font-bold">${f.vendedor}</td><td class="p-3 font-black text-emerald-600">$${f.totalUSD.toFixed(2)}</td><td class="p-3 text-center"><button onclick="window.cargarPreventa('${f.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-black shadow-sm transition text-[10px] uppercase">Facturar</button></td></tr>`;
+                tb.innerHTML += `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="p-3 font-bold text-slate-700">${f.cliente}<br><span class="text-[10px] text-slate-400 font-normal">CI/RIF: ${f.clienteCI}</span></td><td class="p-3 text-xs text-blue-600 font-bold">${f.vendedor}</td><td class="p-3 font-black text-emerald-600">$${f.totalUSD.toFixed(2)}</td><td class="p-3 text-center"><button onclick="window.cargarPreventa('${f.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-black shadow-sm transition text-[10px] uppercase">Facturar</button></td></tr>`;
             });
         }
 
@@ -349,74 +381,130 @@
 
         onSnapshot(collection(db, "clientes"), (snap) => { clientesGlobal = []; snap.forEach(d => clientesGlobal.push({id: d.id, ...d.data()})); });
 
-        // IMPLEMENTACIÓN SEGURA VÍA NETLIFY (Solo números, V por defecto)
+        // NUEVAS FUNCIONES PARA EL MODAL JURÍDICO
+        window.abrirModalJuridico = function(rif) {
+            document.getElementById('jur-rif').value = rif;
+            document.getElementById('jur-nombre').value = '';
+            document.getElementById('jur-telefono').value = '';
+            document.getElementById('jur-direccion').value = '';
+            document.getElementById('modal-cliente-juridico').classList.remove('hidden');
+            setTimeout(() => document.getElementById('jur-nombre').focus(), 100);
+        }
+
+        window.cerrarModalJuridico = function() {
+            document.getElementById('modal-cliente-juridico').classList.add('hidden');
+            document.getElementById('pos-cliente-ci').value = '';
+            document.getElementById('pos-cliente-nombre').value = '';
+            document.getElementById('pos-cliente-ci').focus();
+        }
+
+        window.guardarClienteJuridico = async function() {
+            const idLocal = document.getElementById('jur-rif').value;
+            const nombre = document.getElementById('jur-nombre').value.trim();
+            const telefono = document.getElementById('jur-telefono').value.trim();
+            const direccion = document.getElementById('jur-direccion').value.trim();
+
+            if(!nombre) return window.mostrarModalGlobal('error', 'Faltan Datos', 'La Razón Social o Nombre es obligatoria.');
+
+            document.getElementById('loader-nube').classList.remove('hidden');
+            await setDoc(doc(db, "clientes", idLocal), {
+                nombre: nombre,
+                telefono: telefono,
+                direccion: direccion,
+                tipo: 'Juridico'
+            });
+
+            document.getElementById('pos-cliente-nombre').value = nombre;
+            document.getElementById('loader-nube').classList.add('hidden');
+            document.getElementById('modal-cliente-juridico').classList.add('hidden');
+            window.mostrarModalGlobal('exito', 'Registrado', `La empresa <b>${nombre}</b> ha sido registrada con éxito.`);
+        }
+
+        // LÓGICA MODIFICADA PARA SOPORTAR J Y G
         window.buscarClientePOS = async function() {
-            const rawInput = document.getElementById('pos-cliente-ci').value.trim(); 
+            const rawInput = document.getElementById('pos-cliente-ci').value.trim().toUpperCase(); 
             if(!rawInput) return;
 
-            // Extraer solo números y forzar nacionalidad V
-            const cedulaNumeros = rawInput.replace(/\D/g, ''); 
-            if(!cedulaNumeros) {
-                return window.mostrarModalGlobal('error', 'Formato Inválido', 'Ingresa solo los números de la cédula.');
+            let nacionalidad = 'V';
+            const numeroFormateado = rawInput.replace(/\D/g, ''); 
+
+            // Detectar si el usuario colocó J, G, E o V. Si solo envió números, se asume V.
+            if (rawInput.startsWith('J') || rawInput.startsWith('G') || rawInput.startsWith('E') || rawInput.startsWith('V')) {
+                nacionalidad = rawInput.charAt(0);
             }
 
-            const nacionalidad = 'V';
-            const idLocal = `${nacionalidad}${cedulaNumeros}`; 
+            if(!numeroFormateado) {
+                return window.mostrarModalGlobal('error', 'Formato Inválido', 'Ingresa un número de identificación válido.');
+            }
+
+            const idLocal = `${nacionalidad}${numeroFormateado}`; 
             
-            // Actualizar el campo visualmente (Ej: de "29876021" a "V29876021")
+            // Actualizar el campo visualmente (Ej: de "J123456789" a "J123456789")
             document.getElementById('pos-cliente-ci').value = idLocal;
             document.getElementById('loader-nube').classList.remove('hidden');
 
-            try {
-                // Llamada a tu API en Netlify
-                const PROXY_URL = `/.netlify/functions/api?nacionalidad=${nacionalidad}&cedula=${cedulaNumeros}`;
-                
-                const respuesta = await fetch(PROXY_URL);
-                
-                if (!respuesta.ok) throw new Error("Error en servidor proxy");
-                
-                const json = await respuesta.json();
-
-                if (json && json.error === false && json.data) {
-                    const d = json.data;
-                    const nombreCompleto = [
-                        d.primer_nombre, 
-                        d.segundo_nombre, 
-                        d.primer_apellido, 
-                        d.segundo_apellido
-                    ].filter(Boolean).join(' ');
-
-                    document.getElementById('pos-cliente-nombre').value = nombreCompleto;
-                    
-                    // Guardar en Firebase local
-                    await setDoc(doc(db, "clientes", idLocal), { nombre: nombreCompleto });
+            if (nacionalidad === 'J' || nacionalidad === 'G') {
+                // RUTA JURIDICA: Evitar la API de Netlify (solo funciona con personas)
+                const cli = clientesGlobal.find(c => c.id === idLocal);
+                if(cli) { 
+                    document.getElementById('pos-cliente-nombre').value = cli.nombre; 
                     document.getElementById('loader-nube').classList.add('hidden');
-                    return;
+                } else { 
+                    // No está en la base de datos, abrir modal de registro de empresa
+                    document.getElementById('loader-nube').classList.add('hidden');
+                    window.abrirModalJuridico(idLocal);
                 }
-            } catch (err) {
-                console.error("Error en la consulta de identidad:", err);
-            }
+            } else {
+                // RUTA PERSONA (V / E): Usar la API
+                try {
+                    const PROXY_URL = `/.netlify/functions/api?nacionalidad=${nacionalidad}&cedula=${numeroFormateado}`;
+                    const respuesta = await fetch(PROXY_URL);
+                    
+                    if (!respuesta.ok) throw new Error("Error en servidor proxy");
+                    
+                    const json = await respuesta.json();
 
-            // Si la API falla o no existe el registro, buscar en caché local de Firebase
-            const cli = clientesGlobal.find(c => c.id === idLocal);
-            if(cli) { 
-                document.getElementById('pos-cliente-nombre').value = cli.nombre; 
-            } else { 
-                // Fallback manual
-                window.mostrarModalGlobal('prompt', 'Cliente Nuevo', 
-                    `La CI <b>${idLocal}</b> no pudo ser verificada automáticamente.<br>Por favor, ingresa el nombre manualmente:`, 
-                    '', async function(n) { 
-                    if(n && n.trim() !== '') { 
-                        document.getElementById('loader-nube').classList.remove('hidden'); 
-                        await setDoc(doc(db, "clientes", idLocal), { nombre: n.trim() }); 
-                        document.getElementById('pos-cliente-nombre').value = n.trim(); 
-                        document.getElementById('loader-nube').classList.add('hidden'); 
-                    } else { 
-                        document.getElementById('pos-cliente-ci').value = ''; 
-                    } 
-                }); 
+                    if (json && json.error === false && json.data) {
+                        const d = json.data;
+                        const nombreCompleto = [
+                            d.primer_nombre, 
+                            d.segundo_nombre, 
+                            d.primer_apellido, 
+                            d.segundo_apellido
+                        ].filter(Boolean).join(' ');
+
+                        document.getElementById('pos-cliente-nombre').value = nombreCompleto;
+                        
+                        // Guardar en Firebase local
+                        await setDoc(doc(db, "clientes", idLocal), { nombre: nombreCompleto, tipo: 'Persona' });
+                        document.getElementById('loader-nube').classList.add('hidden');
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Error en la consulta de identidad:", err);
+                }
+
+                // Si la API falla o no existe el registro, buscar en caché local de Firebase
+                const cli = clientesGlobal.find(c => c.id === idLocal);
+                if(cli) { 
+                    document.getElementById('pos-cliente-nombre').value = cli.nombre; 
+                } else { 
+                    // Fallback manual
+                    window.mostrarModalGlobal('prompt', 'Cliente Nuevo', 
+                        `La CI <b>${idLocal}</b> no pudo ser verificada automáticamente.<br>Por favor, ingresa el nombre manualmente:`, 
+                        '', async function(n) { 
+                        if(n && n.trim() !== '') { 
+                            document.getElementById('loader-nube').classList.remove('hidden'); 
+                            await setDoc(doc(db, "clientes", idLocal), { nombre: n.trim(), tipo: 'Persona' }); 
+                            document.getElementById('pos-cliente-nombre').value = n.trim(); 
+                            document.getElementById('loader-nube').classList.add('hidden'); 
+                        } else { 
+                            document.getElementById('pos-cliente-ci').value = ''; 
+                        } 
+                    }); 
+                }
+                document.getElementById('loader-nube').classList.add('hidden');
             }
-            document.getElementById('loader-nube').classList.add('hidden');
         }
 
         onSnapshot(collection(db, "ventas"), (snap) => { historialVentasPOS = []; snap.forEach(d => { const v = {id: d.id, ...d.data()}; if(v.sede === sedeActiva) historialVentasPOS.push(v); }); historialVentasPOS.sort((a,b) => b.id - a.id); window.renderizarHistorial(); });
