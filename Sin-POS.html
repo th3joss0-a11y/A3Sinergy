@@ -166,7 +166,6 @@
         <div class="flex flex-1 overflow-hidden">
             <div class="w-2/3 flex flex-col bg-slate-50 relative">
                 <div class="p-4 border-b bg-white flex gap-2 shadow-sm z-10 items-center">
-                    <!-- SE ACTUALIZÓ EL EVENTO KEY PARA MANEJAR EL BUSCADOR Y EL ENTER -->
                     <input type="text" id="pos-buscador" onkeyup="window.manejarBuscadorPOS(event)" placeholder="🔍 Buscar artículo o código..." class="flex-1 border-2 p-3 rounded-xl bg-slate-50 outline-blue-500 font-bold text-lg shadow-inner">
                     <button onclick="window.abrirEscaner()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl shadow-md transition text-xl border border-blue-700">📷</button>
                 </div>
@@ -501,21 +500,19 @@
         onSnapshot(doc(db, "sistema", "config"), (docS) => { if(docS.exists()) { config = docS.data(); document.getElementById('cart-iva-label').innerText = `IVA (${config.iva}%)`; window.actualizarTotales(); window.renderizarProductosPOS(); } });
         onSnapshot(collection(db, "inventario"), (snap) => { inventario = []; snap.forEach(d => inventario.push({id: d.id, ...d.data()})); window.renderizarProductosPOS(); window.renderizarCarrito(); });
 
-        // NUEVA FUNCIÓN QUE MANEJA LA BÚSQUEDA Y EL EVENTO ENTER AL MISMO TIEMPO
         window.manejarBuscadorPOS = function(event) {
-            window.renderizarProductosPOS(); // Mantiene la búsqueda en tiempo real
+            window.renderizarProductosPOS();
             
             if (event.key === 'Enter') {
                 const query = document.getElementById('pos-buscador').value.trim().toLowerCase();
                 if (query === '') return;
                 
-                // Buscar si existe un producto que coincida EXACTAMENTE con el código
                 const p = inventario.find(x => x.codigo.toLowerCase() === query);
                 
                 if (p) {
                     window.agregarAlCarrito(p.id);
-                    document.getElementById('pos-buscador').value = ''; // Limpiar el input
-                    window.renderizarProductosPOS(); // Refrescar la lista de nuevo
+                    document.getElementById('pos-buscador').value = ''; 
+                    window.renderizarProductosPOS(); 
                 } else {
                     window.mostrarModalGlobal('error', 'Código Inválido', `El código <b>${query}</b> no existe o está mal escrito.`);
                 }
@@ -785,9 +782,53 @@
         }
 
         window.abrirHistorial = function() { document.getElementById('modal-historial').classList.remove('hidden'); }
-        window.renderizarHistorial = function() { const tbody = document.getElementById('tabla-historial'); tbody.innerHTML = ''; historialVentasPOS.filter(v => v.id >= (turnoCajaId || 0)).slice(0,50).forEach(v => { let badge = v.anulada ? `<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-black tracking-widest">ANULADA</span>` : ((rolUsuario === 'admin') ? `<button onclick="window.anularVenta('${v.id}')" class="bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white px-3 py-1 rounded text-[10px] font-black transition">ANULAR</button>` : `<span class="text-emerald-500 font-bold text-[10px] tracking-widest border border-emerald-200 bg-emerald-50 px-2 py-1 rounded">✅ PAGADA</span>`); tbody.innerHTML += `<tr oncontextmenu="window.verDetalleFactura(event, '${v.id}')" class="hover:bg-slate-50 transition cursor-context-menu"><td class="p-3"><b class="text-slate-800">#${v.id.slice(-6)}</b><br><span class="text-[9px] text-slate-400">${v.fechaHora}</span></td><td class="p-3 font-bold">${v.cliente || 'C.F.'}</td><td class="p-3 text-blue-600 font-bold">${v.vendedor || '-'}</td><td class="p-3 font-black text-emerald-600">$${v.totalUSD.toFixed(2)}</td><td class="p-3 text-center">${badge}</td></tr>`; }); }
+        
+        // SE ACTUALIZÓ PARA MOSTRAR EL BOTÓN DE ANULAR CON AUTORIZACIÓN A TODOS (SIEMPRE QUE NO ESTÉ ANULADA)
+        window.renderizarHistorial = function() { 
+            const tbody = document.getElementById('tabla-historial'); tbody.innerHTML = ''; 
+            historialVentasPOS.filter(v => v.id >= (turnoCajaId || 0)).slice(0,50).forEach(v => { 
+                let badge = v.anulada ? `<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-black tracking-widest">ANULADA</span>` : `<div class="flex flex-col items-center gap-1"><span class="text-emerald-500 font-bold text-[10px] tracking-widest border border-emerald-200 bg-emerald-50 px-2 py-1 rounded">✅ PAGADA</span><button onclick="window.solicitarAutorizacionAnular('${v.id}')" class="bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white px-2 py-1 rounded text-[9px] font-black transition uppercase">Anular</button></div>`; 
+                tbody.innerHTML += `<tr oncontextmenu="window.verDetalleFactura(event, '${v.id}')" class="hover:bg-slate-50 transition cursor-context-menu"><td class="p-3"><b class="text-slate-800">#${v.id.slice(-6)}</b><br><span class="text-[9px] text-slate-400">${v.fechaHora}</span></td><td class="p-3 font-bold">${v.cliente || 'C.F.'}</td><td class="p-3 text-blue-600 font-bold">${v.vendedor || '-'}</td><td class="p-3 font-black text-emerald-600">$${v.totalUSD.toFixed(2)}</td><td class="p-3 text-center">${badge}</td></tr>`; 
+            }); 
+        }
+
         window.verDetalleFactura = function(e, id) { e.preventDefault(); const v = historialVentasPOS.find(x => x.id === id); if(!v) return; let itemsHtml = v.items.map(i => `<li class="border-b border-slate-200 py-2 flex justify-between items-center"><span class="text-slate-600 font-semibold">${i.cant}x <span class="text-xs">${i.nombre}</span></span> <span class="font-black text-slate-800">$${(i.pDetal * i.cant).toFixed(2)}</span></li>`).join(''); let htmlMetodosExtra = ''; if(v.metodoPago === 'Crédito') { htmlMetodosExtra = `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-black mt-1 block">A CRÉDITO</span>`; } else if(v.desglosePago) { Object.entries(v.desglosePago).forEach(([m, val]) => { htmlMetodosExtra += `<span class="text-[10px] bg-slate-200 px-2 py-1 rounded text-slate-700 font-bold mr-1 block mt-1">${m}: ${(m.includes('Bs')||m.includes('Punto')||m.includes('Pago Móvil')) ? 'Bs. '+val.bs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '$'+val.usd.toFixed(2)}</span>`; }); } let msg = `<div class="text-left mt-2"><div class="mb-4 flex justify-between items-center bg-slate-50 p-3 rounded-xl border"><div><p class="text-[10px] font-bold text-slate-400 uppercase">Total Cancelado</p><p class="text-xl font-black text-emerald-600">$${v.totalUSD.toFixed(2)}</p></div><div class="text-right"><p class="text-[10px] font-bold text-slate-400 uppercase">Desglose de Pago</p>${htmlMetodosExtra}</div></div><p class="text-xs text-slate-500 font-black uppercase mb-2">Artículos Facturados:</p><ul class="text-sm max-h-48 overflow-y-auto pr-2 bg-slate-50 rounded-lg p-2 border">${itemsHtml}</ul></div>`; window.mostrarModalGlobal('info', `Ticket #${v.id.slice(-6)}`, msg); }
-        window.anularVenta = async function(id) { if(rolUsuario !== 'admin') return; const v = historialVentasPOS.find(x => x.id === id); if(!v) return; window.mostrarModalGlobal('confirmacion', '⚠️ Anular Factura', `¿Seguro que deseas anular la factura #${id.slice(-6)}?\nEl dinero saldrá del cuadre y el stock regresará al inventario.`, '', async function() { document.getElementById('loader-nube').classList.remove('hidden'); for(let c of v.items) { const p = inventario.find(x => x.id === c.id); if(p) { let sSedes = p.stockSedes || {}; sSedes[sedeActiva] = (sSedes[sedeActiva]||0) + c.cant; let ext = (p.existencia||0) + c.cant; await updateDoc(doc(db, "inventario", p.id), { existencia: ext, stockSedes: sSedes }); } } await updateDoc(doc(db, "ventas", id), { anulada: true }); document.getElementById('loader-nube').classList.add('hidden'); window.mostrarModalGlobal('exito', 'Factura Anulada', 'Inventario restablecido correctamente.'); }); }
+
+        // NUEVA FUNCIÓN DE AUTORIZACIÓN PARA ANULAR FACTURAS
+        window.solicitarAutorizacionAnular = function(id) {
+            window.mostrarModalGlobal('prompt-password', 'Autorización Requerida', 'Ingresa la clave de Administrador para anular esta factura:', '', async (clave) => {
+                if (!clave || clave.trim() === '') {
+                    return window.mostrarModalGlobal('error', 'Denegado', 'Debes ingresar una clave.');
+                }
+                let autorizado = usuariosAdmins.find(admin => admin.password === clave);
+                
+                if(autorizado) { 
+                    window.anularVenta(id);
+                } else {
+                    window.mostrarModalGlobal('error', 'Denegado', 'Clave de autorización incorrecta.');
+                }
+            });
+        }
+
+        // SE ACTUALIZÓ PARA QUITAR EL BLOQUEO DIRECTO DE ROL, YA QUE AHORA DEPENDE DE LA CLAVE
+        window.anularVenta = async function(id) { 
+            const v = historialVentasPOS.find(x => x.id === id); if(!v) return; 
+            window.mostrarModalGlobal('confirmacion', '⚠️ Anular Factura', `¿Seguro que deseas anular la factura #${id.slice(-6)}?\nEl dinero saldrá del cuadre y el stock regresará al inventario.`, '', async function() { 
+                document.getElementById('loader-nube').classList.remove('hidden'); 
+                for(let c of v.items) { 
+                    const p = inventario.find(x => x.id === c.id); 
+                    if(p) { 
+                        let sSedes = p.stockSedes || {}; 
+                        sSedes[sedeActiva] = (sSedes[sedeActiva]||0) + c.cant; 
+                        let ext = (p.existencia||0) + c.cant; 
+                        await updateDoc(doc(db, "inventario", p.id), { existencia: ext, stockSedes: sSedes }); 
+                    } 
+                } 
+                await updateDoc(doc(db, "ventas", id), { anulada: true }); 
+                document.getElementById('loader-nube').classList.add('hidden'); 
+                window.mostrarModalGlobal('exito', 'Factura Anulada', 'Inventario restablecido correctamente.'); 
+            }); 
+        }
 
         window.verificarCaja();
     </script>
