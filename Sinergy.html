@@ -270,8 +270,9 @@
     </div>
 
     <script type="module">
+        // Importaciones actualizadas para soportar consultas por rango de fechas en Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs, query, where, documentId } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBydRzHt9Ja3RYvBbXO7n6Cv6pyJqwIUbQ", authDomain: "sinergy-d78d0.firebaseapp.com", databaseURL: "https://sinergy-d78d0-default-rtdb.firebaseio.com", projectId: "sinergy-d78d0", storageBucket: "sinergy-d78d0.firebasestorage.app", messagingSenderId: "399343343582", appId: "1:399343343582:web:29c686fd7e229e8f20ef4f", measurementId: "G-H1DJ1KZBJJ" };
         const app = initializeApp(firebaseConfig); const db = getFirestore(app);
@@ -295,7 +296,7 @@
         document.getElementById('btn-global-ok').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(window.globalCallbackOk) window.globalCallbackOk(document.getElementById('modal-global-input').value); }
         document.getElementById('btn-global-cancel').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(window.globalCallbackCancel) window.globalCallbackCancel(); }
 
-        // MANEJO DE VISTAS (Pestañas)
+        // MANEJO DE VISTAS
         window.cambiarVista = function(vista) {
             document.getElementById('vista-inventario').classList.add('hidden');
             document.getElementById('vista-informes').classList.add('hidden');
@@ -319,7 +320,6 @@
 
         onSnapshot(collection(db, "usuarios"), (snapshot) => { usuariosDB_nube = []; snapshot.forEach((doc) => usuariosDB_nube.push({ id: doc.id, ...doc.data() })); if(usuariosDB_nube.length === 0) setDoc(doc(db, "usuarios", "admin_master"), { username: "admin", password: "123", role: "admin", sede: "Principal" }); });
         
-        // Fetch de sedes para los selects de reportes
         onSnapshot(doc(db, "sistema", "sedes"), (documento) => { 
             if (documento.exists()) { 
                 sedesGlobales = documento.data().lista || ["Principal"]; 
@@ -435,18 +435,10 @@
         }
 
         /* ====================================================================================
-           NUEVO MOTOR DE REPORTES E INFORMES
+           NUEVO MOTOR DE REPORTES E INFORMES (OPTIMIZADO CON QUERIES)
            ==================================================================================== */
         
         function obtenerProductoPorInput(valorInput) { const match = valorInput.match(/\[(.*?)\] (.*)/); if(match) return inventario.find(p => p.codigo === match[1]); return inventario.find(p => p.nombre === valorInput || p.codigo === valorInput); }
-
-        // Función auxiliar para saber si el "ID de firebase" (que es el Timestamp) entra en el rango
-        function estaEnRango(idFirebase, fechaInicioStr, fechaFinStr) {
-            const timestampObj = parseInt(idFirebase);
-            const tsInicio = new Date(fechaInicioStr + "T00:00:00").getTime();
-            const tsFin = new Date(fechaFinStr + "T23:59:59").getTime();
-            return (timestampObj >= tsInicio && timestampObj <= tsFin);
-        }
 
         // --- 1. Movimiento de Unidades ---
         window.consultarMovimientosItem = async function() {
@@ -464,15 +456,23 @@
             tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 font-bold animate-pulse">Consultando en la base de datos...</td></tr>';
 
             try {
-                const ventasSnapshot = await getDocs(collection(db, "ventas"));
-                const movsSnapshot = await getDocs(collection(db, "movimientos"));
+                // 1. Convertimos fechas a milisegundos (formato string)
+                const tsInicio = new Date(fDesde + "T00:00:00").getTime().toString();
+                const tsFin = new Date(fHasta + "T23:59:59").getTime().toString();
+
+                // 2. Construimos las consultas pidiendo SOLO lo de ese rango
+                const qVentas = query(collection(db, "ventas"), where(documentId(), ">=", tsInicio), where(documentId(), "<=", tsFin));
+                const qMovs = query(collection(db, "movimientos"), where(documentId(), ">=", tsInicio), where(documentId(), "<=", tsFin));
+                
+                // 3. Ejecutamos las consultas (Firebase hace el filtro)
+                const ventasSnapshot = await getDocs(qVentas);
+                const movsSnapshot = await getDocs(qMovs);
                 
                 let historial = [];
 
-                // Extraer de Ventas
                 ventasSnapshot.forEach(d => {
                     const data = d.data();
-                    if(!data.anulada && estaEnRango(d.id, fDesde, fHasta)) {
+                    if(!data.anulada) {
                         const itemEncontrado = data.items.find(i => i.id === prod.id);
                         if(itemEncontrado) {
                             historial.push({
@@ -487,37 +487,33 @@
                     }
                 });
 
-                // Extraer de Movimientos (Cargos, Descargos, Traslados)
                 movsSnapshot.forEach(d => {
                     const data = d.data();
-                    if(estaEnRango(d.id, fDesde, fHasta)) {
-                        const itemEncontrado = data.items.find(i => i.id === prod.id);
-                        if(itemEncontrado) {
-                            let badgeTipo = ''; let infoSede = ''; let colorCant = ''; let signoCant = '';
-                            if(data.tipo === 'cargar') { 
-                                badgeTipo = '<span class="text-emerald-600 bg-emerald-100 px-2 py-1 rounded border border-emerald-200">📥 CARGO (Entrada)</span>';
-                                infoSede = itemEncontrado.destino; colorCant = 'text-emerald-600'; signoCant = '+';
-                            } else if (data.tipo === 'descargar') {
-                                badgeTipo = '<span class="text-red-600 bg-red-100 px-2 py-1 rounded border border-red-200">📤 DESCARGO (Salida)</span>';
-                                infoSede = itemEncontrado.origen; colorCant = 'text-red-600'; signoCant = '-';
-                            } else if (data.tipo === 'transferir') {
-                                badgeTipo = '<span class="text-purple-600 bg-purple-100 px-2 py-1 rounded border border-purple-200">🔀 TRASLADO</span>';
-                                infoSede = `${itemEncontrado.origen} ➔ ${itemEncontrado.destino}`; colorCant = 'text-slate-800'; signoCant = '';
-                            }
-
-                            historial.push({
-                                idTimestamp: parseInt(d.id),
-                                fecha: data.fechaHora,
-                                sede: infoSede,
-                                tipo: badgeTipo,
-                                detalle: `Resp: ${data.responsable || 'S/N'}<br>Motivo: ${data.proposito}`,
-                                cant: `<span class="${colorCant} font-black">${signoCant}${itemEncontrado.cant}</span>`
-                            });
+                    const itemEncontrado = data.items.find(i => i.id === prod.id);
+                    if(itemEncontrado) {
+                        let badgeTipo = ''; let infoSede = ''; let colorCant = ''; let signoCant = '';
+                        if(data.tipo === 'cargar') { 
+                            badgeTipo = '<span class="text-emerald-600 bg-emerald-100 px-2 py-1 rounded border border-emerald-200">📥 CARGO (Entrada)</span>';
+                            infoSede = itemEncontrado.destino; colorCant = 'text-emerald-600'; signoCant = '+';
+                        } else if (data.tipo === 'descargar') {
+                            badgeTipo = '<span class="text-red-600 bg-red-100 px-2 py-1 rounded border border-red-200">📤 DESCARGO (Salida)</span>';
+                            infoSede = itemEncontrado.origen; colorCant = 'text-red-600'; signoCant = '-';
+                        } else if (data.tipo === 'transferir') {
+                            badgeTipo = '<span class="text-purple-600 bg-purple-100 px-2 py-1 rounded border border-purple-200">🔀 TRASLADO</span>';
+                            infoSede = `${itemEncontrado.origen} ➔ ${itemEncontrado.destino}`; colorCant = 'text-slate-800'; signoCant = '';
                         }
+
+                        historial.push({
+                            idTimestamp: parseInt(d.id),
+                            fecha: data.fechaHora,
+                            sede: infoSede,
+                            tipo: badgeTipo,
+                            detalle: `Resp: ${data.responsable || 'S/N'}<br>Motivo: ${data.proposito}`,
+                            cant: `<span class="${colorCant} font-black">${signoCant}${itemEncontrado.cant}</span>`
+                        });
                     }
                 });
 
-                // Ordenar del más nuevo al más viejo
                 historial.sort((a, b) => b.idTimestamp - a.idTimestamp);
 
                 tbody.innerHTML = '';
@@ -563,7 +559,7 @@
                             p.codigo || 'S/C',
                             p.ref || 'N/A',
                             p.nombre,
-                            detallar ? stock : '________' // Si no se detalla, se deja linea para contar a mano
+                            detallar ? stock : '________'
                         ]);
                     }
                 }
@@ -611,35 +607,39 @@
             loader.classList.remove('hidden');
 
             try {
-                // Descargamos para analizar en memoria
-                const ventasSnapshot = await getDocs(collection(db, "ventas"));
-                const movsSnapshot = await getDocs(collection(db, "movimientos"));
+                // 1. Convertimos a string de milisegundos
+                const tsInicio = new Date(fDesde + "T00:00:00").getTime().toString();
+                const tsFin = new Date(fHasta + "T23:59:59").getTime().toString();
+
+                // 2. Armamos las queries
+                const qVentas = query(collection(db, "ventas"), where(documentId(), ">=", tsInicio), where(documentId(), "<=", tsFin));
+                const qMovs = query(collection(db, "movimientos"), where(documentId(), ">=", tsInicio), where(documentId(), "<=", tsFin));
+
+                // 3. Traemos SOLO ese rango
+                const ventasSnapshot = await getDocs(qVentas);
+                const movsSnapshot = await getDocs(qMovs);
 
                 let setIdsConMovimiento = new Set();
 
                 ventasSnapshot.forEach(d => {
                     const data = d.data();
-                    if(!data.anulada && data.sede === sede && estaEnRango(d.id, fDesde, fHasta)) {
+                    if(!data.anulada && data.sede === sede) {
                         data.items.forEach(i => setIdsConMovimiento.add(i.id));
                     }
                 });
 
                 movsSnapshot.forEach(d => {
                     const data = d.data();
-                    if(estaEnRango(d.id, fDesde, fHasta)) {
-                        data.items.forEach(i => {
-                            if(data.tipo === 'cargar' && i.destino === sede) setIdsConMovimiento.add(i.id);
-                            if(data.tipo === 'descargar' && i.origen === sede) setIdsConMovimiento.add(i.id);
-                            if(data.tipo === 'transferir' && (i.origen === sede || i.destino === sede)) setIdsConMovimiento.add(i.id);
-                        });
-                    }
+                    data.items.forEach(i => {
+                        if(data.tipo === 'cargar' && i.destino === sede) setIdsConMovimiento.add(i.id);
+                        if(data.tipo === 'descargar' && i.origen === sede) setIdsConMovimiento.add(i.id);
+                        if(data.tipo === 'transferir' && (i.origen === sede || i.destino === sede)) setIdsConMovimiento.add(i.id);
+                    });
                 });
 
-                // Evaluamos contra inventario actual
                 let dataExport = [];
                 inventario.forEach(p => {
                     const stockSede = (p.stockSedes && p.stockSedes[sede]) ? p.stockSedes[sede] : 0;
-                    // Condición: Que tenga stock PERO que su ID NO esté en el Set de movimientos
                     if(stockSede > 0 && !setIdsConMovimiento.has(p.id)) {
                         dataExport.push([ p.codigo || 'S/C', p.nombre, p.cat, stockSede ]);
                     }
@@ -656,7 +656,7 @@
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF();
                     doc.setFontSize(16);
-                    doc.setTextColor(234, 88, 12); // Naranja oscuro
+                    doc.setTextColor(234, 88, 12); 
                     doc.text(`Artículos Estancados - Sede: ${sede}`, 14, 15);
                     doc.setFontSize(10);
                     doc.setTextColor(100, 116, 139);
@@ -667,7 +667,7 @@
                         head: [['Código', 'Descripción del Artículo', 'Categoría', 'Stock Estancado']],
                         body: dataExport,
                         theme: 'grid',
-                        headStyles: { fillColor: [249, 115, 22] }, // Naranja
+                        headStyles: { fillColor: [249, 115, 22] },
                         styles: { fontSize: 8 }
                     });
                     doc.save(`${nombreArchivo}.pdf`);
