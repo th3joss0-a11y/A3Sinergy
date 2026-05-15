@@ -298,7 +298,7 @@
                 <div id="vista-usuarios" class="hidden space-y-6">
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 w-full">
                         <h3 class="font-black text-slate-700 uppercase mb-4 flex items-center gap-2">🔐 Accesos al Sistema (Login)</h3>
-                        <p class="text-xs text-slate-500 font-bold mb-4">Crea aquí a todo tu equipo (Administradores, Cajeros, Almacenistas y Vendedores).</p>
+                        <p class="text-xs text-slate-500 font-bold mb-4">Crea aquí a todo tu equipo (Administradores, Encargados, Cajeros, Almacenistas y Vendedores).</p>
                         <div class="flex gap-2 items-end mb-4 border p-4 rounded-xl bg-slate-50 flex-wrap">
                             <div class="w-full md:flex-1"><label class="text-[10px] font-bold">Usuario / Nombre</label><input type="text" id="nu-user" class="w-full border-2 p-2 rounded outline-blue-500 text-sm font-bold bg-white"></div>
                             <div class="w-full md:flex-1"><label class="text-[10px] font-bold text-slate-500">Contraseña (Opcional Vendedor)</label><input type="text" id="nu-pass" placeholder="Dejar vacío si es Vendedor..." class="w-full border-2 p-2 rounded outline-blue-500 text-sm font-bold bg-white"></div>
@@ -307,6 +307,7 @@
                                     <option value="cajero">Cajero (Cobra)</option>
                                     <option value="vendedor">Vendedor (Preventa)</option>
                                     <option value="almacenista">Almacenista</option>
+                                    <option value="encargado">Encargado (Solo Autoriza/Anula)</option>
                                     <option value="admin">Admin Total</option>
                                 </select>
                             </div>
@@ -405,6 +406,7 @@
                     document.getElementById('label-admin').innerText = sesionAdmin.username + ' (' + sesionAdmin.role + ')'; 
                     window.aplicarPermisos();
                 } else {
+                    // Los roles de Cajero, Vendedor y Encargado van al POS, no al Admin
                     localStorage.setItem('a3_pre_auth_pos', JSON.stringify({ username: usuarioValido.username, role: usuarioValido.role, sede: usuarioValido.sede || 'Principal' })); 
                     window.location.href = 'Sin-POS.html';
                 }
@@ -446,7 +448,7 @@
 
         // --- GESTIÓN DE USUARIOS ---
         window.renderizarTablaUsuarios = function() { const tbody = document.getElementById('tabla-usuarios'); if(!tbody) return; tbody.innerHTML = ''; usuariosDB.forEach(u => { 
-            let colorRol = u.role === 'admin' ? 'bg-red-100 text-red-600' : (u.role === 'almacenista' ? 'bg-orange-100 text-orange-600' : (u.role === 'vendedor' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'));
+            let colorRol = u.role === 'admin' ? 'bg-red-100 text-red-600' : (u.role === 'encargado' ? 'bg-teal-100 text-teal-700' : (u.role === 'almacenista' ? 'bg-orange-100 text-orange-600' : (u.role === 'vendedor' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600')));
             let pwdMostrar = u.password === '' ? '<span class="text-slate-400 italic">Sin Contraseña</span>' : `<span class="font-mono">${u.password}</span>`;
             tbody.innerHTML += `<tr class="hover:bg-blue-50 transition border-b border-slate-50"><td class="p-4 font-black text-slate-700">${u.username}</td><td class="p-4 text-slate-500">${pwdMostrar}</td><td class="p-4"><span class="px-2 py-1 rounded-md text-[10px] font-black uppercase ${colorRol}">${u.role}</span></td><td class="p-4"><span class="text-[10px] font-bold text-slate-400 uppercase">${u.sede || 'Todas'}</span></td><td class="p-4 text-right"><button onclick="window.eliminarUsuario('${u.id}')" class="text-red-500 font-bold px-3 py-1 rounded hover:bg-red-50">Eliminar</button></td></tr>`; 
         }); }
@@ -456,7 +458,7 @@
             const r = document.getElementById('nu-rol').value; 
             const s = document.getElementById('nu-sede').value; 
             
-            if(!u || (r !== 'vendedor' && p === '')) return window.mostrarModalGlobal('error', 'Campos Incompletos', 'Falta el nombre de usuario o la contraseña (obligatoria para administradores, cajeros y almacenistas).'); 
+            if(!u || (r !== 'vendedor' && p === '')) return window.mostrarModalGlobal('error', 'Campos Incompletos', 'Falta el nombre de usuario o la contraseña (obligatoria para administradores, encargados, cajeros y almacenistas).'); 
             if(usuariosDB.find(x => x.username.toLowerCase() === u.toLowerCase())) return window.mostrarModalGlobal('error', 'Duplicado', 'El usuario ya existe.'); 
             
             loader.classList.remove('hidden'); 
