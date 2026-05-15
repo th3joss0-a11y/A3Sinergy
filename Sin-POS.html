@@ -13,6 +13,11 @@
         @keyframes pop { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
+        
+        /* Ocultar scrollbar para elementos móviles */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         @media screen { .print-only { display: none !important; } }
         @media print {
             @page { margin: 0; size: 80mm auto; }
@@ -22,15 +27,27 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 flex h-screen overflow-hidden text-slate-800 relative">
+<body class="bg-slate-100 flex flex-col h-screen overflow-hidden text-slate-800 relative">
 
     <div id="loader-nube" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-[200] animate-pulse hidden no-print">Procesando Online...</div>
 
+    <!-- MODIFICADO: APERTURA DE CAJA CON DÓLARES Y BOLÍVARES -->
     <div id="modal-apertura" class="hidden fixed inset-0 bg-slate-900/95 z-[600] flex items-center justify-center p-4 backdrop-blur-md no-print">
         <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 border-emerald-500 animate-pop">
             <div class="text-6xl mb-4">💰</div><h3 class="text-2xl font-black text-slate-800 mb-2">Apertura de Caja</h3>
             <p class="text-slate-500 font-medium mb-6 text-sm">Declara el fondo de caja para iniciar.</p>
-            <div class="text-left mb-6"><label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Efectivo en Caja (USD)</label><input type="number" id="input-fondo-caja" class="w-full border-2 p-4 rounded-xl font-black text-center text-2xl outline-none focus:border-emerald-500 text-emerald-700 bg-emerald-50" placeholder="0.00" step="0.01"></div>
+            
+            <div class="flex gap-3 mb-6">
+                <div class="flex-1 text-left">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Efectivo ($)</label>
+                    <input type="number" id="input-fondo-caja" class="w-full border-2 p-3 rounded-xl font-black text-center text-xl outline-none focus:border-emerald-500 text-emerald-700 bg-emerald-50" placeholder="0.00" step="0.01">
+                </div>
+                <div class="flex-1 text-left">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Efectivo (Bs)</label>
+                    <input type="number" id="input-fondo-caja-bs" class="w-full border-2 p-3 rounded-xl font-black text-center text-xl outline-none focus:border-blue-500 text-blue-700 bg-blue-50" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+
             <button onclick="window.iniciarTurnoCaja()" class="w-full bg-emerald-600 text-white py-4 rounded-xl font-black shadow-lg hover:bg-emerald-700 transition uppercase tracking-widest">Abrir Turno</button>
         </div>
     </div>
@@ -65,8 +82,8 @@
                 <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">📥 Facturas Pendientes</h3>
                 <button onclick="document.getElementById('modal-preventas').classList.add('hidden')" class="text-slate-400 hover:text-red-500 font-black text-xl px-2 ml-auto">&times;</button>
             </div>
-            <div class="flex-1 overflow-y-auto">
-                <table class="w-full text-left text-sm">
+            <div class="flex-1 overflow-x-auto overflow-y-auto">
+                <table class="w-full text-left text-sm min-w-[500px]">
                     <thead class="bg-slate-100 text-slate-500 uppercase text-[10px] sticky top-0"><tr><th class="p-3">Cliente</th><th class="p-3">Vendedor</th><th class="p-3">Monto</th><th class="p-3 text-center">Acción</th></tr></thead>
                     <tbody id="tabla-preventas" class="divide-y divide-slate-100"></tbody>
                 </table>
@@ -120,11 +137,11 @@
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4"><p class="text-xs text-blue-800 font-bold uppercase mb-1">Total a Facturar</p><p class="text-2xl font-black text-blue-900" id="pago-total-usd-static"></p><p class="text-sm font-bold text-blue-600" id="pago-total-bs-static"></p></div>
             <div class="text-left bg-slate-50 p-4 rounded-xl border-2 border-slate-200 shadow-inner">
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-emerald-700">💵 Efectivo USD ($)</label><input type="number" id="pm-usd" class="border-2 p-2 rounded-lg w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
-                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-blue-700">💴 Efectivo Bs</label><input type="number" id="pm-efec-bs" class="border-2 p-2 rounded-lg w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
-                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-purple-700">💳 Punto de Venta (Bs)</label><input type="number" id="pm-punto-bs" class="border-2 p-2 rounded-lg w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
-                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-orange-700">📱 Pago Móvil (Bs)</label><input type="number" id="pm-pm-bs" class="border-2 p-2 rounded-lg w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
-                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-indigo-700">🟣 Zelle ($)</label><input type="number" id="pm-zelle" class="border-2 p-2 rounded-lg w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
+                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-emerald-700">💵 Efectivo USD ($)</label><input type="number" id="pm-usd" class="border-2 p-2 rounded-lg w-24 sm:w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
+                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-blue-700">💴 Efectivo Bs</label><input type="number" id="pm-efec-bs" class="border-2 p-2 rounded-lg w-24 sm:w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
+                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-purple-700">💳 Punto de Venta (Bs)</label><input type="number" id="pm-punto-bs" class="border-2 p-2 rounded-lg w-24 sm:w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
+                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-orange-700">📱 Pago Móvil (Bs)</label><input type="number" id="pm-pm-bs" class="border-2 p-2 rounded-lg w-24 sm:w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
+                    <div class="flex justify-between items-center"><label class="text-xs font-bold text-indigo-700">🟣 Zelle ($)</label><input type="number" id="pm-zelle" class="border-2 p-2 rounded-lg w-24 sm:w-32 text-right font-black outline-blue-500 pm-input bg-white" placeholder="0.00" oninput="window.calcMixto()"></div>
                 </div>
                 <div class="mt-4 bg-slate-900 text-white p-4 rounded-xl text-center shadow-lg border border-slate-700 relative overflow-hidden h-28 flex flex-col justify-center items-center"><div id="pm-resta" class="z-10 relative leading-tight w-full"><span class="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Falta por Cobrar</span><span class="font-black text-3xl block">$0.00</span></div></div>
                 <button onclick="window.procesarVentaMixta()" class="w-full bg-blue-600 text-white mt-4 py-4 rounded-xl font-black text-lg shadow-xl transition uppercase tracking-widest hover:bg-blue-700">Procesar Venta</button>
@@ -141,74 +158,83 @@
     </div>
 
     <div id="modal-cuadre" class="hidden fixed inset-0 bg-slate-900/90 z-[400] flex items-center justify-center p-4 backdrop-blur-sm no-print"><div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-pop text-center relative border-t-8 border-purple-500"><h3 class="text-2xl font-black text-slate-800 mb-1">💰 Cuadre de Caja</h3><p class="text-xs text-slate-500 font-bold mb-4">Resumen de ingresos del turno actual.</p><div id="cuadre-contenido" class="text-left bg-slate-50 p-4 rounded-xl border mb-4 max-h-[50vh] overflow-y-auto"></div><div class="flex gap-2 mt-4"><button onclick="document.getElementById('modal-cuadre').classList.add('hidden')" class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition uppercase">Volver</button><button onclick="window.procesarCorteZ()" class="flex-1 bg-purple-600 text-white py-3 rounded-xl font-black shadow-lg hover:bg-purple-700 transition uppercase flex items-center justify-center gap-2"><span>🖨️</span> Corte Z</button></div></div></div>
-    <div id="modal-historial" class="hidden fixed inset-0 bg-slate-900/90 z-[250] flex flex-col items-center justify-center p-4 backdrop-blur-sm no-print"><div class="bg-white rounded-3xl p-6 w-full max-w-5xl shadow-2xl animate-pop flex flex-col max-h-[90vh]"><div class="flex justify-between items-center mb-6 border-b pb-4"><h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">🧾 Historial de Turno</h3><p class="text-xs text-slate-400 font-bold ml-4 mt-1 bg-slate-100 px-2 py-1 rounded border">💡 Click derecho sobre la factura para ver sus artículos</p><button onclick="document.getElementById('modal-historial').classList.add('hidden')" class="text-slate-400 hover:text-red-500 font-black text-xl px-2 ml-auto">&times;</button></div><div class="flex-1 overflow-y-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-100 text-slate-500 uppercase text-[10px] sticky top-0"><tr><th class="p-3">ID / Fecha</th><th class="p-3">Cliente</th><th class="p-3">Vendedor</th><th class="p-3">Total</th><th class="p-3 text-center">Estado</th></tr></thead><tbody id="tabla-historial" class="divide-y divide-slate-100"></tbody></table></div></div></div>
+    
+    <div id="modal-historial" class="hidden fixed inset-0 bg-slate-900/90 z-[250] flex flex-col items-center justify-center p-4 backdrop-blur-sm no-print"><div class="bg-white rounded-3xl p-6 w-full max-w-5xl shadow-2xl animate-pop flex flex-col max-h-[90vh]"><div class="flex justify-between items-center mb-6 border-b pb-4"><h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">🧾 Historial de Turno</h3><p class="hidden sm:block text-xs text-slate-400 font-bold ml-4 mt-1 bg-slate-100 px-2 py-1 rounded border">💡 Click derecho sobre la factura para ver sus artículos</p><button onclick="document.getElementById('modal-historial').classList.add('hidden')" class="text-slate-400 hover:text-red-500 font-black text-xl px-2 ml-auto">&times;</button></div><div class="flex-1 overflow-x-auto overflow-y-auto"><table class="w-full text-left text-sm min-w-[600px]"><thead class="bg-slate-100 text-slate-500 uppercase text-[10px] sticky top-0"><tr><th class="p-3">ID / Fecha</th><th class="p-3">Cliente</th><th class="p-3">Vendedor</th><th class="p-3">Total</th><th class="p-3 text-center">Estado</th></tr></thead><tbody id="tabla-historial" class="divide-y divide-slate-100"></tbody></table></div></div></div>
 
-    <div class="no-print flex-1 flex flex-col h-full overflow-hidden">
-        <header class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-lg z-10">
-            <div class="flex items-center gap-4">
-                <h1 class="text-2xl font-black"><span class="text-blue-500">Sin-</span>POS</h1>
-                <span class="bg-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow" id="label-sede-activa">SEDE</span>
+    <!-- HEADER RESPONSIVO -->
+    <header class="no-print bg-slate-900 text-white p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-0 shadow-lg z-10 shrink-0">
+        <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+            <h1 class="text-xl sm:text-2xl font-black"><span class="text-blue-500">Sin-</span>POS</h1>
+            <span class="bg-blue-600 px-2 sm:px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow" id="label-sede-activa">SEDE</span>
+        </div>
+        
+        <!-- Contenedor de botones con scroll horizontal oculto en móviles para que entren todos -->
+        <div class="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar justify-start sm:justify-end">
+            <button onclick="window.location.href='Sin-Admin.html'" id="btn-volver-admin" class="hidden text-xs bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded font-bold transition flex items-center border border-blue-700 text-white shadow whitespace-nowrap">⚙️ <span class="hidden lg:inline ml-1">Panel Admin</span></button>
+            <button onclick="window.saltarInventario()" id="btn-volver-inv" class="hidden text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded font-bold transition flex items-center border border-slate-600 text-white shadow whitespace-nowrap">📦 <span class="hidden lg:inline ml-1">Inventario</span></button>
+            
+            <button id="btn-preventas" onclick="window.abrirPreventas()" class="hidden text-xs bg-orange-500 hover:bg-orange-400 px-3 py-2 rounded font-bold transition flex items-center gap-1 sm:gap-2 border border-orange-600 text-white shadow whitespace-nowrap"><span class="text-base">📥</span> <span class="hidden lg:inline">Pendientes</span> (<span id="badge-preventas">0</span>)</button>
+            
+            <button id="btn-cuadre-z" onclick="window.abrirCuadre()" class="hidden text-xs bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded font-bold transition flex items-center gap-1 sm:gap-2 border border-purple-700 text-white shadow whitespace-nowrap"><span class="text-base">💰</span> <span class="hidden lg:inline">Cuadre / Z</span></button>
+            
+            <div class="hidden sm:block w-px h-6 bg-slate-700 mx-1"></div>
+            
+            <button onclick="window.abrirHistorial()" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded font-bold transition flex items-center gap-1 sm:gap-2 border border-slate-700 whitespace-nowrap">🧾 <span class="hidden sm:inline">Historial</span></button>
+            <button onclick="window.cerrarSesionPOS()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-2 rounded font-bold transition text-white shadow-lg whitespace-nowrap"><span class="hidden sm:inline">Salir</span><span class="sm:hidden">🚪</span></button>
+        </div>
+    </header>
+
+    <!-- ESTRUCTURA PRINCIPAL RESPONSIVA (COLUMNAS EN PC, FILAS/STACK EN MÓVIL) -->
+    <div class="no-print flex flex-col lg:flex-row flex-1 overflow-hidden">
+        
+        <!-- PANEL IZQUIERDO: PRODUCTOS -->
+        <div class="w-full lg:w-2/3 flex flex-col bg-slate-50 relative flex-1 min-h-[30vh]">
+            <div class="p-3 sm:p-4 border-b bg-white flex gap-2 shadow-sm z-10 items-center shrink-0">
+                <input type="text" id="pos-buscador" onkeyup="window.manejarBuscadorPOS(event)" placeholder="🔍 Buscar artículo..." class="flex-1 border-2 p-2 sm:p-3 rounded-xl bg-slate-50 outline-blue-500 font-bold text-sm sm:text-lg shadow-inner">
+                <button onclick="window.abrirEscaner()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-5 py-2 sm:py-3 rounded-xl shadow-md transition text-lg sm:text-xl border border-blue-700">📷</button>
             </div>
-            <div class="flex items-center gap-2 md:gap-3">
-                <button onclick="window.location.href='Sin-Admin.html'" id="btn-volver-admin" class="hidden text-xs bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded font-bold transition flex items-center border border-blue-700 text-white shadow">⚙️ Panel Admin</button>
-                <button onclick="window.saltarInventario()" id="btn-volver-inv" class="hidden text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded font-bold transition flex items-center border border-slate-600 text-white shadow">📦 Inventario</button>
-                
-                <button id="btn-preventas" onclick="window.abrirPreventas()" class="hidden text-xs bg-orange-500 hover:bg-orange-400 px-3 py-2 rounded font-bold transition flex items-center gap-2 border border-orange-600 text-white shadow"><span class="text-base">📥</span> Pendientes (<span id="badge-preventas">0</span>)</button>
-                
-                <button id="btn-cuadre-z" onclick="window.abrirCuadre()" class="hidden text-xs bg-purple-600 hover:bg-purple-500 px-3 py-2 rounded font-bold transition flex items-center gap-2 border border-purple-700 text-white shadow"><span class="text-base">💰</span> Cuadre / Corte Z</button>
-                
-                <div class="w-px h-6 bg-slate-700 mx-1"></div>
-                <button onclick="window.abrirHistorial()" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded font-bold transition flex items-center gap-2 border border-slate-700">🧾 Historial</button>
-                <button onclick="window.cerrarSesionPOS()" class="text-xs bg-red-600 hover:bg-red-500 px-3 py-2 rounded font-bold transition text-white shadow-lg">Salir</button>
+            <div class="flex-1 overflow-y-auto p-2 sm:p-4">
+                <div id="lista-productos-pos" class="flex flex-col gap-2 pb-10 lg:pb-20"></div>
             </div>
-        </header>
+        </div>
 
-        <div class="flex flex-1 overflow-hidden">
-            <div class="w-2/3 flex flex-col bg-slate-50 relative">
-                <div class="p-4 border-b bg-white flex gap-2 shadow-sm z-10 items-center">
-                    <input type="text" id="pos-buscador" onkeyup="window.manejarBuscadorPOS(event)" placeholder="🔍 Buscar artículo o código..." class="flex-1 border-2 p-3 rounded-xl bg-slate-50 outline-blue-500 font-bold text-lg shadow-inner">
-                    <button onclick="window.abrirEscaner()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl shadow-md transition text-xl border border-blue-700">📷</button>
+        <!-- PANEL DERECHO: CARRITO (Abajo en móviles, Derecha en PC) -->
+        <div class="w-full lg:w-1/3 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.15)] lg:shadow-2xl z-20 flex flex-col border-t-2 lg:border-t-0 lg:border-l border-slate-200 relative h-[55vh] lg:h-full shrink-0">
+            <div class="p-3 border-b bg-slate-50 flex justify-between items-center shrink-0">
+                <div>
+                    <h2 class="font-black text-slate-800 text-base sm:text-lg flex items-center gap-2">🛒 Carrito</h2>
+                    <p id="cart-counter" class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">0 FILAS | 0 UNDS</p>
                 </div>
-                <div class="flex-1 overflow-y-auto p-4">
-                    <div id="lista-productos-pos" class="flex flex-col gap-2 pb-20"></div>
+                <button onclick="window.vaciarCarrito()" class="text-[9px] sm:text-[10px] text-red-500 font-black uppercase bg-slate-200 px-2 py-1 rounded hover:bg-red-100 hover:text-red-600 border border-slate-300 transition">Vaciar</button>
+            </div>
+            
+            <div class="p-3 border-b border-slate-100 bg-slate-50 space-y-2 shadow-inner z-10 shrink-0">
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <div class="flex-1">
+                        <label class="text-[9px] sm:text-[10px] font-bold text-blue-800 uppercase block mb-1">👔 Vendedor</label>
+                        <select id="pos-vendedor" class="w-full border-2 border-blue-200 p-2 rounded-lg font-bold outline-blue-500 text-xs sm:text-sm bg-white cursor-pointer shadow-sm"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase block mb-1">🤝 Cliente (Cédula/RIF)</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="pos-cliente-ci" placeholder="CI/RIF + ENTER" onkeypress="if(event.key==='Enter') window.buscarClientePOS()" class="w-full sm:w-1/3 border-2 border-slate-200 p-2 rounded-lg font-bold outline-blue-500 text-xs sm:text-sm bg-white uppercase shadow-sm">
+                        <input type="text" id="pos-cliente-nombre" placeholder="Nombre..." disabled class="w-full sm:w-2/3 border-2 border-slate-200 p-2 rounded-lg font-bold text-xs sm:text-sm bg-slate-100 text-slate-500 shadow-inner">
+                    </div>
                 </div>
             </div>
 
-            <div class="w-1/3 bg-white shadow-2xl z-20 flex flex-col border-l border-slate-200 relative">
-                <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
-                    <div>
-                        <h2 class="font-black text-slate-800 text-lg flex items-center gap-2">🛒 Carrito</h2>
-                        <p id="cart-counter" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">0 FILAS | 0 UNDS</p>
-                    </div>
-                    <button onclick="window.vaciarCarrito()" class="text-[10px] text-red-500 font-black uppercase bg-slate-200 px-2 py-1 rounded hover:bg-red-100 hover:text-red-600 border border-slate-300 transition">Vaciar</button>
+            <div class="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50" id="carrito-items"></div>
+
+            <div class="p-4 sm:p-6 bg-slate-900 text-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-20 shrink-0">
+                <div class="flex justify-between items-center mb-1"><span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">Subtotal</span><span class="font-bold text-sm sm:text-base" id="cart-sub">$0.00</span></div>
+                <div class="flex justify-between items-center mb-2 sm:mb-4 pb-2 sm:pb-4 border-b border-slate-700"><span class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest" id="cart-iva-label">IVA (16%)</span><span class="font-bold text-blue-400 text-sm sm:text-base" id="cart-iva">$0.00</span></div>
+                <div class="flex justify-between items-end mb-3 sm:mb-6">
+                    <div><span class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total a Pagar</span><span class="text-emerald-400 font-bold text-base sm:text-lg">Bs. <span id="cart-total-bs">0.00</span></span></div>
+                    <div class="text-3xl sm:text-5xl font-black text-white" id="cart-total-usd">$0.00</div>
                 </div>
                 
-                <div class="p-4 border-b border-slate-100 bg-slate-50 space-y-3 shadow-inner z-10">
-                    <div>
-                        <label class="text-[10px] font-bold text-blue-800 uppercase block mb-1">👔 Vendedor</label>
-                        <select id="pos-vendedor" class="w-full border-2 border-blue-200 p-2 rounded-lg font-bold outline-blue-500 text-sm bg-white cursor-pointer shadow-sm"></select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">🤝 Cliente (Cédula/RIF)</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="pos-cliente-ci" placeholder="Ej: V12345678 o J12345678" onkeypress="if(event.key==='Enter') window.buscarClientePOS()" class="w-1/3 border-2 border-slate-200 p-2 rounded-lg font-bold outline-blue-500 text-sm bg-white uppercase shadow-sm">
-                            <input type="text" id="pos-cliente-nombre" placeholder="Presiona ENTER..." disabled class="w-2/3 border-2 border-slate-200 p-2 rounded-lg font-bold text-sm bg-slate-100 text-slate-500 shadow-inner">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50" id="carrito-items"></div>
-
-                <div class="p-6 bg-slate-900 text-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-20">
-                    <div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Subtotal</span><span class="font-bold" id="cart-sub">$0.00</span></div>
-                    <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700"><span class="text-xs font-bold text-slate-400 uppercase tracking-widest" id="cart-iva-label">IVA (16%)</span><span class="font-bold text-blue-400" id="cart-iva">$0.00</span></div>
-                    <div class="flex justify-between items-end mb-6">
-                        <div><span class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total a Pagar</span><span class="text-emerald-400 font-bold text-lg">Bs. <span id="cart-total-bs">0.00</span></span></div>
-                        <div class="text-5xl font-black text-white" id="cart-total-usd">$0.00</div>
-                    </div>
-                    
-                    <button id="btn-accion-principal" onclick="window.accionPrincipalPOS()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xl hover:bg-blue-700 transition shadow-lg uppercase tracking-widest border border-blue-500">Cobrar Factura</button>
-                </div>
+                <button id="btn-accion-principal" onclick="window.accionPrincipalPOS()" class="w-full bg-blue-600 text-white py-3 sm:py-4 rounded-xl font-black text-lg sm:text-xl hover:bg-blue-700 transition shadow-lg uppercase tracking-widest border border-blue-500">Cobrar Factura</button>
             </div>
         </div>
     </div>
@@ -253,7 +279,7 @@
             } else if (rolUsuario === 'vendedor') {
                 let btnPrinc = document.getElementById('btn-accion-principal');
                 btnPrinc.innerText = '📤 Enviar a Caja';
-                btnPrinc.className = 'w-full bg-orange-500 text-white py-4 rounded-xl font-black text-xl hover:bg-orange-600 transition shadow-lg uppercase tracking-widest border border-orange-500';
+                btnPrinc.className = 'w-full bg-orange-500 text-white py-3 sm:py-4 rounded-xl font-black text-lg sm:text-xl hover:bg-orange-600 transition shadow-lg uppercase tracking-widest border border-orange-500';
             }
         }
 
@@ -267,9 +293,12 @@
             if(!cajaGuardada) { document.getElementById('modal-apertura').classList.remove('hidden'); document.getElementById('input-fondo-caja').focus(); } 
             else { turnoCajaId = cajaGuardada.timestamp; }
         }
+
+        // FUNCIÓN MODIFICADA PARA GUARDAR FONDOS EN BS Y USD
         window.iniciarTurnoCaja = function() {
-            const fondo = parseFloat(document.getElementById('input-fondo-caja').value) || 0;
-            const cajaObj = { abierta: true, fondoUSD: fondo, timestamp: Date.now().toString(), fecha: new Date().toLocaleString() };
+            const fondoUSD = parseFloat(document.getElementById('input-fondo-caja').value) || 0;
+            const fondoBs = parseFloat(document.getElementById('input-fondo-caja-bs').value) || 0;
+            const cajaObj = { abierta: true, fondoUSD: fondoUSD, fondoBs: fondoBs, timestamp: Date.now().toString(), fecha: new Date().toLocaleString() };
             localStorage.setItem('a3_caja_activa_' + sedeActiva, JSON.stringify(cajaObj)); turnoCajaId = cajaObj.timestamp;
             document.getElementById('modal-apertura').classList.add('hidden'); window.renderizarHistorial();
         }
@@ -526,7 +555,7 @@
             const filtro = document.getElementById('pos-buscador').value.trim().toLowerCase();
             
             if (filtro === '') {
-                contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full mt-24 opacity-50"><div class="text-6xl mb-4">🔍</div><p class="font-bold text-slate-500 text-center text-lg">Escribe el nombre o código<br>para buscar artículos.</p></div>`;
+                contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full mt-2 sm:mt-24 opacity-50"><div class="text-4xl sm:text-6xl mb-4">🔍</div><p class="font-bold text-slate-500 text-center text-sm sm:text-lg">Escribe el nombre o código<br>para buscar artículos.</p></div>`;
                 return;
             }
 
@@ -543,26 +572,26 @@
                 
                 if(stock <= 0) { 
                     contenedor.innerHTML += `
-                    <div class="bg-slate-50 rounded-lg p-3 border border-red-200 flex justify-between items-center opacity-70 cursor-not-allowed mb-2">
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-black text-slate-400 bg-slate-200 px-2 py-1 rounded border border-slate-300 uppercase min-w-[70px] text-center shadow-inner">${p.codigo}</span>
-                            <h3 class="font-bold text-sm text-slate-500 truncate max-w-[200px] md:max-w-xs">${p.nombre}</h3>
+                    <div class="bg-slate-50 rounded-lg p-2 sm:p-3 border border-red-200 flex justify-between items-center opacity-70 cursor-not-allowed mb-2">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <span class="text-[9px] sm:text-[10px] font-black text-slate-400 bg-slate-200 px-2 py-1 rounded border border-slate-300 uppercase min-w-[50px] sm:min-w-[70px] text-center shadow-inner">${p.codigo}</span>
+                            <h3 class="font-bold text-xs sm:text-sm text-slate-500 truncate max-w-[150px] md:max-w-xs">${p.nombre}</h3>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <span class="font-black text-red-500 text-[10px] bg-red-100 px-2 py-1 rounded border border-red-200 tracking-widest uppercase">Agotado</span>
+                        <div class="flex items-center gap-2 sm:gap-4">
+                            <span class="font-black text-red-500 text-[9px] sm:text-[10px] bg-red-100 px-2 py-1 rounded border border-red-200 tracking-widest uppercase">Agotado</span>
                         </div>
                     </div>`; 
                 } else { 
                     contenedor.innerHTML += `
-                    <div onclick="window.agregarAlCarrito('${p.id}')" class="bg-white rounded-lg p-3 shadow-sm border border-slate-200 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center mb-2">
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded border border-blue-200 uppercase min-w-[70px] text-center shadow-inner">${p.codigo}</span>
-                            <h3 class="font-bold text-sm text-slate-800 truncate max-w-[200px] md:max-w-xs">${p.nombre}</h3>
+                    <div onclick="window.agregarAlCarrito('${p.id}')" class="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-slate-200 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <span class="text-[9px] sm:text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded border border-blue-200 uppercase min-w-[50px] sm:min-w-[70px] text-center shadow-inner">${p.codigo}</span>
+                            <h3 class="font-bold text-xs sm:text-sm text-slate-800 truncate max-w-[150px] md:max-w-xs">${p.nombre}</h3>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-[11px] font-bold text-slate-500 hidden md:block">Stock: <b class="text-slate-800">${stock}</b></span>
-                            <span class="text-[11px] font-bold text-slate-500 md:hidden"><b class="text-slate-800">${stock}</b> un.</span>
-                            <span class="font-black text-blue-600 text-lg min-w-[80px] text-right">$${pDetal.toFixed(2)}</span>
+                        <div class="flex items-center gap-2 sm:gap-4">
+                            <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 hidden md:block">Stock: <b class="text-slate-800">${stock}</b></span>
+                            <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 md:hidden"><b class="text-slate-800">${stock}</b> un.</span>
+                            <span class="font-black text-blue-600 text-sm sm:text-lg min-w-[60px] sm:min-w-[80px] text-right">$${pDetal.toFixed(2)}</span>
                         </div>
                     </div>`; 
                 }
@@ -583,7 +612,7 @@
         
         window.renderizarCarrito = function() { 
             const ct = document.getElementById('carrito-items'); ct.innerHTML = ''; 
-            carrito.forEach((c, i) => { ct.innerHTML += `<div class="bg-white border border-slate-100 p-3 rounded-xl flex justify-between items-center shadow-sm"><div class="flex-1"><h4 class="text-xs font-bold leading-tight text-slate-800">${c.nombre}</h4><p class="text-[10px] text-blue-500 font-black mt-1">$${c.pDetal.toFixed(2)} c/u</p></div><div class="flex items-center gap-3 bg-slate-50 px-2 py-1 rounded-lg border"><button onclick="window.modCant(${i}, -1)" class="text-slate-500 font-black hover:text-red-500">-</button><span class="font-black text-sm w-4 text-center">${c.cant}</span><button onclick="window.modCant(${i}, 1)" class="text-slate-500 font-black hover:text-blue-500">+</button></div></div>`; }); 
+            carrito.forEach((c, i) => { ct.innerHTML += `<div class="bg-white border border-slate-100 p-2 sm:p-3 rounded-xl flex justify-between items-center shadow-sm"><div class="flex-1"><h4 class="text-[10px] sm:text-xs font-bold leading-tight text-slate-800">${c.nombre}</h4><p class="text-[9px] sm:text-[10px] text-blue-500 font-black mt-1">$${c.pDetal.toFixed(2)} c/u</p></div><div class="flex items-center gap-2 sm:gap-3 bg-slate-50 px-2 py-1 rounded-lg border"><button onclick="window.modCant(${i}, -1)" class="text-slate-500 font-black hover:text-red-500">-</button><span class="font-black text-xs sm:text-sm w-3 sm:w-4 text-center">${c.cant}</span><button onclick="window.modCant(${i}, 1)" class="text-slate-500 font-black hover:text-blue-500">+</button></div></div>`; }); 
             window.actualizarTotales(); 
         }
 
@@ -650,9 +679,9 @@
             let u = parseFloat(document.getElementById('pm-usd').value) || 0; let eb = parseFloat(document.getElementById('pm-efec-bs').value) || 0; let pb = parseFloat(document.getElementById('pm-punto-bs').value) || 0; let pmb = parseFloat(document.getElementById('pm-pm-bs').value) || 0; let z = parseFloat(document.getElementById('pm-zelle').value) || 0;
             let sumaUSD_divisas = u + z; let suma_Bs = eb + pb + pmb; let sumaTotalUSD = sumaUSD_divisas + (suma_Bs / config.tasa); let restaUSD = window.totalVentaTempUSD - sumaTotalUSD; let guiaBs_Fija = (window.totalVentaTempUSD - sumaUSD_divisas) * config.tasa; if(guiaBs_Fija < 0) guiaBs_Fija = 0;
             const lblResta = document.getElementById('pm-resta');
-            if(Math.abs(restaUSD) < 0.05) { lblResta.innerHTML = `<span class="font-black text-3xl block text-emerald-400 mt-2">PAGO EXACTO ✅</span>`; } 
-            else if (restaUSD < 0) { let vueltoUSD = Math.abs(restaUSD); let vueltoBs = vueltoUSD * config.tasa; lblResta.innerHTML = `<span class="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Vuelto a Entregar</span><span class="font-black text-3xl block text-orange-500">$${vueltoUSD.toFixed(2)}</span><span class="text-sm font-bold text-orange-400 block">Bs. ${vueltoBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`; } 
-            else { lblResta.innerHTML = `<span class="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Falta por Cobrar</span><span class="font-black text-3xl block text-red-500">$${restaUSD.toFixed(2)}</span><span class="text-sm font-bold text-blue-300 block bg-slate-800 rounded px-3 py-1 mt-2 shadow-inner border border-slate-700">Guía de cobro: Bs. ${guiaBs_Fija.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`; }
+            if(Math.abs(restaUSD) < 0.05) { lblResta.innerHTML = `<span class="font-black text-2xl sm:text-3xl block text-emerald-400 mt-2">PAGO EXACTO ✅</span>`; } 
+            else if (restaUSD < 0) { let vueltoUSD = Math.abs(restaUSD); let vueltoBs = vueltoUSD * config.tasa; lblResta.innerHTML = `<span class="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Vuelto a Entregar</span><span class="font-black text-2xl sm:text-3xl block text-orange-500">$${vueltoUSD.toFixed(2)}</span><span class="text-xs sm:text-sm font-bold text-orange-400 block">Bs. ${vueltoBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`; } 
+            else { lblResta.innerHTML = `<span class="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Falta por Cobrar</span><span class="font-black text-2xl sm:text-3xl block text-red-500">$${restaUSD.toFixed(2)}</span><span class="text-[10px] sm:text-sm font-bold text-blue-300 block bg-slate-800 rounded px-3 py-1 mt-2 shadow-inner border border-slate-700">Guía de cobro: Bs. ${guiaBs_Fija.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`; }
         }
 
         window.procesarVentaMixta = async function() {
@@ -783,7 +812,6 @@
 
         window.abrirHistorial = function() { document.getElementById('modal-historial').classList.remove('hidden'); }
         
-        // SE ACTUALIZÓ PARA MOSTRAR EL BOTÓN DE ANULAR CON AUTORIZACIÓN A TODOS (SIEMPRE QUE NO ESTÉ ANULADA)
         window.renderizarHistorial = function() { 
             const tbody = document.getElementById('tabla-historial'); tbody.innerHTML = ''; 
             historialVentasPOS.filter(v => v.id >= (turnoCajaId || 0)).slice(0,50).forEach(v => { 
@@ -792,9 +820,8 @@
             }); 
         }
 
-        window.verDetalleFactura = function(e, id) { e.preventDefault(); const v = historialVentasPOS.find(x => x.id === id); if(!v) return; let itemsHtml = v.items.map(i => `<li class="border-b border-slate-200 py-2 flex justify-between items-center"><span class="text-slate-600 font-semibold">${i.cant}x <span class="text-xs">${i.nombre}</span></span> <span class="font-black text-slate-800">$${(i.pDetal * i.cant).toFixed(2)}</span></li>`).join(''); let htmlMetodosExtra = ''; if(v.metodoPago === 'Crédito') { htmlMetodosExtra = `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-black mt-1 block">A CRÉDITO</span>`; } else if(v.desglosePago) { Object.entries(v.desglosePago).forEach(([m, val]) => { htmlMetodosExtra += `<span class="text-[10px] bg-slate-200 px-2 py-1 rounded text-slate-700 font-bold mr-1 block mt-1">${m}: ${(m.includes('Bs')||m.includes('Punto')||m.includes('Pago Móvil')) ? 'Bs. '+val.bs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '$'+val.usd.toFixed(2)}</span>`; }); } let msg = `<div class="text-left mt-2"><div class="mb-4 flex justify-between items-center bg-slate-50 p-3 rounded-xl border"><div><p class="text-[10px] font-bold text-slate-400 uppercase">Total Cancelado</p><p class="text-xl font-black text-emerald-600">$${v.totalUSD.toFixed(2)}</p></div><div class="text-right"><p class="text-[10px] font-bold text-slate-400 uppercase">Desglose de Pago</p>${htmlMetodosExtra}</div></div><p class="text-xs text-slate-500 font-black uppercase mb-2">Artículos Facturados:</p><ul class="text-sm max-h-48 overflow-y-auto pr-2 bg-slate-50 rounded-lg p-2 border">${itemsHtml}</ul></div>`; window.mostrarModalGlobal('info', `Ticket #${v.id.slice(-6)}`, msg); }
+        window.verDetalleFactura = function(e, id) { e.preventDefault(); const v = historialVentasPOS.find(x => x.id === id); if(!v) return; let itemsHtml = v.items.map(i => `<li class="border-b border-slate-200 py-2 flex justify-between items-center"><span class="text-slate-600 font-semibold">${i.cant}x <span class="text-[10px] sm:text-xs">${i.nombre}</span></span> <span class="font-black text-slate-800">$${(i.pDetal * i.cant).toFixed(2)}</span></li>`).join(''); let htmlMetodosExtra = ''; if(v.metodoPago === 'Crédito') { htmlMetodosExtra = `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-black mt-1 block">A CRÉDITO</span>`; } else if(v.desglosePago) { Object.entries(v.desglosePago).forEach(([m, val]) => { htmlMetodosExtra += `<span class="text-[10px] bg-slate-200 px-2 py-1 rounded text-slate-700 font-bold mr-1 block mt-1">${m}: ${(m.includes('Bs')||m.includes('Punto')||m.includes('Pago Móvil')) ? 'Bs. '+val.bs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '$'+val.usd.toFixed(2)}</span>`; }); } let msg = `<div class="text-left mt-2"><div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-3 rounded-xl border gap-2"><div class="w-full sm:w-auto"><p class="text-[10px] font-bold text-slate-400 uppercase">Total Cancelado</p><p class="text-xl font-black text-emerald-600">$${v.totalUSD.toFixed(2)}</p></div><div class="w-full sm:text-right"><p class="text-[10px] font-bold text-slate-400 uppercase">Desglose de Pago</p><div class="flex flex-wrap sm:justify-end gap-1">${htmlMetodosExtra}</div></div></div><p class="text-[10px] sm:text-xs text-slate-500 font-black uppercase mb-2">Artículos Facturados:</p><ul class="text-xs sm:text-sm max-h-48 overflow-y-auto pr-2 bg-slate-50 rounded-lg p-2 border">${itemsHtml}</ul></div>`; window.mostrarModalGlobal('info', `Ticket #${v.id.slice(-6)}`, msg); }
 
-        // NUEVA FUNCIÓN DE AUTORIZACIÓN PARA ANULAR FACTURAS
         window.solicitarAutorizacionAnular = function(id) {
             window.mostrarModalGlobal('prompt-password', 'Autorización Requerida', 'Ingresa la clave de Administrador para anular esta factura:', '', async (clave) => {
                 if (!clave || clave.trim() === '') {
@@ -810,7 +837,6 @@
             });
         }
 
-        // SE ACTUALIZÓ PARA QUITAR EL BLOQUEO DIRECTO DE ROL, YA QUE AHORA DEPENDE DE LA CLAVE
         window.anularVenta = async function(id) { 
             const v = historialVentasPOS.find(x => x.id === id); if(!v) return; 
             window.mostrarModalGlobal('confirmacion', '⚠️ Anular Factura', `¿Seguro que deseas anular la factura #${id.slice(-6)}?\nEl dinero saldrá del cuadre y el stock regresará al inventario.`, '', async function() { 
