@@ -341,7 +341,7 @@
             
             snap.forEach(d => {
                 let u = d.data();
-                if (u.role === 'admin') { usuariosAdmins.push(u); }
+                if (u.role === 'admin' || u.role === 'encargado') { usuariosAdmins.push(u); }
                 if(u.role === 'cajero' && u.sede === sedeActiva) {
                     usuariosCajeros.push(u);
                     if(selDestino) selDestino.innerHTML += `<option value="${u.username}">Caja de ${u.username}</option>`;
