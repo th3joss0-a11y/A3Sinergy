@@ -5,19 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A3Sinergy - Inventario Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .animate-pop { animation: pop 0.3s cubic-bezier(0.26, 0.53, 0.74, 1.48); }
         @keyframes pop { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar { width: 6px; height: 6px;}
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-100 flex h-screen overflow-hidden text-slate-800 relative">
 
-    <div id="loader-nube" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-[200] animate-pulse hidden">Sincronizando Online...</div>
+    <div id="loader-nube" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg z-[600] animate-pulse hidden">Procesando Online...</div>
 
-    <!-- MOTOR DE MODALES -->
-    <div id="modal-custom-global" class="hidden fixed inset-0 bg-slate-900/80 z-[400] flex items-center justify-center p-4 backdrop-blur-sm">
+    <div id="modal-custom-global" class="hidden fixed inset-0 bg-slate-900/80 z-[500] flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border-t-8 animate-pop" id="modal-global-border">
             <div id="modal-global-icon" class="text-6xl mb-4">⚠️</div><h3 id="modal-global-title" class="text-xl font-black text-slate-800 mb-2">Título</h3>
             <p id="modal-global-message" class="text-slate-500 font-medium mb-6">Mensaje</p>
@@ -29,7 +36,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE LOGIN UNIVERSAL -->
     <div id="modal-login" class="fixed inset-0 bg-slate-900 z-[100] flex flex-col items-center justify-center p-4">
         <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center border-t-8 border-blue-500 animate-pop">
             <div class="text-4xl font-black mb-2"><span class="text-blue-600">A3</span>Sinergy</div><p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8 border-b pb-4">Acceso al Sistema</p>
@@ -41,7 +47,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE RUTA ADMIN (SÓLO SI ES ADMIN) -->
     <div id="modal-ruta-admin" class="fixed inset-0 bg-slate-900/90 z-[110] flex flex-col items-center justify-center p-4 hidden backdrop-blur-sm">
         <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center">
             <h3 class="text-2xl font-black text-slate-800 mb-2">¡Hola, Admin! 👋</h3><p class="text-sm font-bold text-slate-500 mb-6">¿A qué módulo deseas entrar hoy?</p>
@@ -53,12 +58,14 @@
         </div>
     </div>
 
-    <!-- Sidebar Lateral -->
-    <div class="w-72 bg-slate-900 text-white flex flex-col shadow-xl overflow-y-auto z-40">
+    <div class="w-72 bg-slate-900 text-white flex flex-col shadow-xl overflow-y-auto z-40 shrink-0">
         <div class="p-6 text-2xl font-bold border-b border-slate-800 flex items-center gap-2"><span class="text-blue-500">A3</span>Sinergy <span class="text-[10px] bg-blue-600 px-2 py-1 rounded-full text-white font-black ml-2 animate-pulse">ONLINE</span></div>
-        <div class="p-4 space-y-6">
+        <div class="p-4 space-y-6 flex-1">
             <div class="space-y-2 border-b border-slate-800 pb-4">
-                <a href="Sin-POS.html" class="flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 transition text-slate-300"><span class="text-xl">🛒</span> <span class="font-semibold">Ir al Punto de Venta</span></a>
+                <button onclick="window.cambiarVista('inventario')" id="btn-nav-inventario" class="w-full flex items-center gap-4 text-left p-3 rounded bg-blue-600 text-white font-semibold transition"><span class="text-xl">📦</span> Base de Datos</button>
+                <button onclick="window.cambiarVista('informes')" id="btn-nav-informes" class="w-full flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 text-slate-300 font-semibold transition"><span class="text-xl">📊</span> Informes y Filtros</button>
+                <div class="h-px bg-slate-800 my-2"></div>
+                <a href="Sin-POS.html" class="flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 transition text-slate-400"><span class="text-xl">🛒</span> <span class="font-semibold">Ir al Punto de Venta</span></a>
                 <button id="btn-menu-admin" onclick="window.irARutaAdmin()" class="hidden w-full flex items-center gap-4 text-left p-3 rounded bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white transition border border-red-800"><span class="text-xl">🛡️</span> <span class="font-bold">Panel de Administración</span></button>
             </div>
             <div class="space-y-4">
@@ -76,70 +83,201 @@
                     <ul id="lista-categorias" class="text-xs space-y-1 max-h-32 overflow-y-auto pr-1"></ul>
                 </div>
             </div>
-            <div class="text-center pt-4 pb-6 border-t border-slate-800"><p class="text-[10px] text-slate-500 uppercase font-bold">Operador: <span id="label-operador" class="text-blue-400">---</span></p><button onclick="window.cerrarSesion()" class="text-xs text-red-400 hover:text-red-300 mt-2 underline">Cerrar Sesión</button></div>
         </div>
+        <div class="text-center pt-4 pb-6 border-t border-slate-800 shrink-0"><p class="text-[10px] text-slate-500 uppercase font-bold">Operador: <span id="label-operador" class="text-blue-400">---</span></p><button onclick="window.cerrarSesion()" class="text-xs text-red-400 hover:text-red-300 mt-2 underline">Cerrar Sesión</button></div>
     </div>
 
-    <!-- Contenido Principal -->
-    <div class="flex-1 flex flex-col overflow-y-auto">
-        <header class="bg-white shadow-sm p-6 flex justify-between items-center border-b">
-            <div><h1 class="text-2xl font-bold text-slate-800 uppercase tracking-tighter">Inventario A3Sinergy</h1><p class="text-xs text-emerald-600 font-bold flex items-center gap-1">🟢 Online Sincronizado</p></div>
+    <div class="flex-1 flex flex-col overflow-y-auto relative bg-slate-50">
+        <header class="bg-white shadow-sm p-6 flex justify-between items-center border-b sticky top-0 z-10">
+            <div><h1 id="titulo-header" class="text-2xl font-bold text-slate-800 uppercase tracking-tighter">Inventario A3Sinergy</h1><p class="text-xs text-emerald-600 font-bold flex items-center gap-1">🟢 Online Sincronizado</p></div>
         </header>
 
-        <main class="p-6 space-y-6">
-            <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-600">
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CÓDIGO</label><input type="text" id="reg-codigo" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div>
-                    <div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">REFERENCIA / MARCA</label><input type="text" id="reg-ref" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div>
-                    <div class="col-span-2"><label class="text-[10px] font-bold text-slate-500">DESCRIPCIÓN</label><input type="text" id="reg-nombre" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div>
-                    <div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CATEGORÍA</label><select id="reg-cat" class="w-full border p-2 rounded bg-slate-50 font-semibold outline-blue-500"></select></div>
-                    
-                    <div class="col-span-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><label class="text-[10px] font-bold text-blue-700">COSTO NETO ($)</label><input type="number" id="reg-costo" step="0.01" oninput="window.calcularTodo()" class="w-full bg-transparent text-lg font-black outline-none" placeholder="0.00"></div>
-                    
-                    <div class="col-span-3 grid grid-cols-3 gap-2 border p-2 rounded-lg bg-slate-50">
-                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Detal (%)</label><input type="number" id="reg-mdetal" oninput="window.calcularTodo()" value="24" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
-                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Mayor (%)</label><input type="number" id="reg-mmayor" oninput="window.calcularTodo()" value="18" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
-                        <div><label class="text-[10px] font-bold uppercase text-slate-500">M. G. Mayor (%)</label><input type="number" id="reg-mgran" oninput="window.calcularTodo()" value="13" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
+        <main class="p-6">
+            
+            <div id="vista-inventario" class="space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-600">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CÓDIGO</label><input type="text" id="reg-codigo" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div>
+                        <div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">REFERENCIA / MARCA</label><input type="text" id="reg-ref" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div>
+                        <div class="col-span-2"><label class="text-[10px] font-bold text-slate-500">DESCRIPCIÓN</label><input type="text" id="reg-nombre" class="w-full border p-2 rounded bg-slate-50 outline-blue-500"></div>
+                        <div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CATEGORÍA</label><select id="reg-cat" class="w-full border p-2 rounded bg-slate-50 font-semibold outline-blue-500"></select></div>
+                        
+                        <div class="col-span-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><label class="text-[10px] font-bold text-blue-700">COSTO NETO ($)</label><input type="number" id="reg-costo" step="0.01" oninput="window.calcularTodo()" class="w-full bg-transparent text-lg font-black outline-none" placeholder="0.00"></div>
+                        
+                        <div class="col-span-3 grid grid-cols-3 gap-2 border p-2 rounded-lg bg-slate-50">
+                            <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Detal (%)</label><input type="number" id="reg-mdetal" oninput="window.calcularTodo()" value="24" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
+                            <div><label class="text-[10px] font-bold uppercase text-slate-500">M. Mayor (%)</label><input type="number" id="reg-mmayor" oninput="window.calcularTodo()" value="18" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
+                            <div><label class="text-[10px] font-bold uppercase text-slate-500">M. G. Mayor (%)</label><input type="number" id="reg-mgran" oninput="window.calcularTodo()" value="13" class="w-full border p-1 rounded font-bold text-center text-sm outline-blue-500"></div>
+                        </div>
+
+                        <div class="col-span-1"><label class="text-[10px] font-bold uppercase">Stock Mín. (Alerta)</label><input type="number" id="reg-min" class="w-full border p-2 rounded h-[34px] mt-1 outline-blue-500"></div>
+
+                        <div class="col-span-3 grid grid-cols-3 gap-2 bg-slate-50 p-2 rounded-lg border border-dashed">
+                            <div><label class="text-[10px] font-bold uppercase">PV Detal</label><div id="prev-detal" class="text-sm font-bold text-blue-700">$0.00</div></div>
+                            <div><label class="text-[10px] font-bold uppercase">PV Mayor</label><div id="prev-mayor" class="text-sm font-bold text-emerald-700">$0.00</div></div>
+                            <div><label class="text-[10px] font-bold uppercase">PV G. Mayor</label><div id="prev-gran" class="text-sm font-bold text-purple-700">$0.00</div></div>
+                        </div>
+
+                        <div class="col-span-2 flex items-end"><button onclick="window.agregarProducto()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold shadow hover:bg-blue-700 transition uppercase">Registrar Item Básico</button></div>
                     </div>
+                </div>
 
-                    <div class="col-span-1"><label class="text-[10px] font-bold uppercase">Stock Mín. (Alerta)</label><input type="number" id="reg-min" class="w-full border p-2 rounded h-[34px] mt-1 outline-blue-500"></div>
-
-                    <div class="col-span-3 grid grid-cols-3 gap-2 bg-slate-50 p-2 rounded-lg border border-dashed">
-                        <div><label class="text-[10px] font-bold uppercase">PV Detal</label><div id="prev-detal" class="text-sm font-bold text-blue-700">$0.00</div></div>
-                        <div><label class="text-[10px] font-bold uppercase">PV Mayor</label><div id="prev-mayor" class="text-sm font-bold text-emerald-700">$0.00</div></div>
-                        <div><label class="text-[10px] font-bold uppercase">PV G. Mayor</label><div id="prev-gran" class="text-sm font-bold text-purple-700">$0.00</div></div>
+                <div class="bg-white rounded-xl shadow-md border overflow-hidden">
+                    <div class="p-4 border-b bg-slate-50 flex flex-wrap gap-4 justify-between items-center">
+                        <input type="text" id="buscador" onkeyup="window.buscarProducto()" placeholder="🔍 Buscar por nombre o código..." class="flex-1 border p-2 rounded outline-blue-500 min-w-[200px]">
+                        <div class="flex items-center gap-3">
+                            <button onclick="window.abrirEdicionMasiva()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded text-xs font-bold transition shadow-sm uppercase flex items-center gap-1"><span>⚡</span> Costo Masivo</button>
+                            <span class="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2 whitespace-nowrap">📦 Items Creados: <span id="item-count" class="bg-blue-600 text-white px-2 py-0.5 rounded ml-1">0</span></span>
+                        </div>
                     </div>
-
-                    <div class="col-span-2 flex items-end"><button onclick="window.agregarProducto()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold shadow hover:bg-blue-700 transition uppercase">Registrar Item Básico</button></div>
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900 text-white text-[10px] uppercase">
+                            <tr>
+                                <th class="p-4 w-10 text-center"><input type="checkbox" id="chk-all" onchange="window.toggleSelectAll(this)" class="w-4 h-4 cursor-pointer accent-orange-500"></th>
+                                <th class="p-4">Cod / Ref</th><th class="p-4">Categoría / Producto</th><th class="p-4 text-blue-400 italic">DETAL ($)</th><th class="p-4 text-emerald-400 italic">MAYOR ($)</th><th class="p-4 text-purple-400 italic">G. MAYOR ($)</th><th class="p-4 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-body" class="divide-y text-xs"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-md border overflow-hidden">
-                <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
-                    <input type="text" id="buscador" onkeyup="window.buscarProducto()" placeholder="🔍 Buscar por nombre o código..." class="w-1/3 border p-2 rounded outline-blue-500">
-                    <span class="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">📦 Items Creados: <span id="item-count" class="bg-blue-600 text-white px-2 py-0.5 rounded ml-1">0</span></span>
+            <div id="vista-informes" class="hidden space-y-6">
+                
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500">
+                    <h2 class="text-xl font-black text-slate-800 uppercase mb-2 flex items-center gap-2">🔄 Auditoría de Movimientos por Artículo</h2>
+                    <p class="text-xs text-slate-500 font-bold mb-4">Busca el historial completo (Ventas, Cargos, Descargos y Traslados) de un artículo específico en un rango de fechas.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Seleccionar Producto</label>
+                            <input type="text" id="inf-mov-prod" list="lista-nombres-productos" class="w-full border-2 p-2 rounded-lg bg-white outline-purple-500 font-bold text-sm" placeholder="Código o Nombre...">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Desde</label>
+                            <input type="date" id="inf-mov-desde" class="w-full border-2 p-2 rounded-lg bg-white outline-purple-500 text-sm">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Hasta</label>
+                            <input type="date" id="inf-mov-hasta" class="w-full border-2 p-2 rounded-lg bg-white outline-purple-500 text-sm">
+                        </div>
+                        <div class="col-span-1 md:col-span-4 mt-2">
+                            <button onclick="window.consultarMovimientosItem()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-black shadow transition uppercase text-sm flex items-center justify-center gap-2">🔍 Consultar Movimientos</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 border rounded-lg overflow-hidden bg-white">
+                        <div class="max-h-80 overflow-y-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-100 text-slate-600 text-[10px] uppercase sticky top-0 shadow-sm">
+                                    <tr><th class="p-3">Fecha</th><th class="p-3">Sede / Ubicación</th><th class="p-3">Tipo de Operación</th><th class="p-3">Detalle / Responsable</th><th class="p-3 text-center">Cant.</th></tr>
+                                </thead>
+                                <tbody id="tabla-inf-movimientos" class="divide-y divide-slate-100">
+                                    <tr><td colspan="5" class="p-6 text-center text-slate-400 italic">Realiza una consulta para ver resultados.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <table class="w-full text-left">
-                    <thead class="bg-slate-900 text-white text-[10px] uppercase">
-                        <tr><th class="p-4">Cod / Ref</th><th class="p-4">Categoría / Producto</th><th class="p-4 text-blue-400 italic">DETAL ($)</th><th class="p-4 text-emerald-400 italic">MAYOR ($)</th><th class="p-4 text-purple-400 italic">G. MAYOR ($)</th><th class="p-4 text-center">Acción</th></tr>
-                    </thead>
-                    <tbody id="tabla-body" class="divide-y text-xs"></tbody>
-                </table>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-emerald-500">
+                    <h2 class="text-xl font-black text-slate-800 uppercase mb-2 flex items-center gap-2">📝 Generar Formato de Inventario Físico</h2>
+                    <p class="text-xs text-slate-500 font-bold mb-4">Exporta un documento (PDF o Excel) listo para imprimir y hacer conteo de almacén o para revisión general.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Filtrar por Sede</label>
+                                <select id="inf-fisico-sede" class="w-full border-2 p-2 rounded-lg bg-white outline-emerald-500 text-sm font-bold select-sedes-todas"></select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Filtrar por Departamento / Categoría</label>
+                                <select id="inf-fisico-cat" class="w-full border-2 p-2 rounded-lg bg-white outline-emerald-500 text-sm font-bold select-cat-todas"></select>
+                            </div>
+                        </div>
+                        <div class="space-y-4 flex flex-col justify-center">
+                            <label class="flex items-center gap-3 cursor-pointer p-2 bg-white rounded border hover:bg-emerald-50 transition">
+                                <input type="checkbox" id="inf-fisico-cero" class="w-5 h-5 accent-emerald-600">
+                                <span class="text-sm font-bold text-slate-700">Incluir ítems con existencia cero (0)</span>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer p-2 bg-white rounded border hover:bg-emerald-50 transition">
+                                <input type="checkbox" id="inf-fisico-detallar" class="w-5 h-5 accent-emerald-600" checked>
+                                <div>
+                                    <span class="text-sm font-bold text-slate-700 block">Detallar existencia del sistema</span>
+                                    <span class="text-[10px] text-slate-500">Si lo desmarcas, la columna quedará en blanco para hacer conteo manual.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                        <button onclick="window.exportarFisico('pdf')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-black shadow transition uppercase text-sm flex items-center justify-center gap-2">📄 Exportar a PDF</button>
+                        <button onclick="window.exportarFisico('excel')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-black shadow transition uppercase text-sm flex items-center justify-center gap-2">📊 Exportar a Excel</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-orange-500">
+                    <h2 class="text-xl font-black text-slate-800 uppercase mb-2 flex items-center gap-2">⚠️ Reporte de Productos Sin Movimiento</h2>
+                    <p class="text-xs text-slate-500 font-bold mb-4">Descubre qué artículos de tu inventario (con stock mayor a 0) no han tenido NINGUNA salida ni entrada en un rango de tiempo.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Sede a evaluar</label>
+                            <select id="inf-sinmov-sede" class="w-full border-2 p-2 rounded-lg bg-white outline-orange-500 text-sm font-bold select-sedes"></select>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Analizar Desde</label>
+                            <input type="date" id="inf-sinmov-desde" class="w-full border-2 p-2 rounded-lg bg-white outline-orange-500 text-sm">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Analizar Hasta</label>
+                            <input type="date" id="inf-sinmov-hasta" class="w-full border-2 p-2 rounded-lg bg-white outline-orange-500 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                        <button onclick="window.exportarSinMovimiento('pdf')" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-lg font-black shadow transition uppercase text-sm flex items-center justify-center gap-2">📄 Generar Reporte PDF</button>
+                        <button onclick="window.exportarSinMovimiento('excel')" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-black shadow transition uppercase text-sm flex items-center justify-center gap-2">📊 Generar Reporte Excel</button>
+                    </div>
+                </div>
+
             </div>
+            
+            <datalist id="lista-nombres-productos"></datalist>
         </main>
     </div>
 
-    <!-- Modal Edición de Producto -->
     <div id="modal-edicion" class="fixed inset-0 bg-slate-900/80 z-[150] hidden flex justify-center items-center p-4 backdrop-blur-sm"><div class="bg-white rounded-xl shadow-2xl w-[90%] max-w-4xl overflow-hidden animate-pop"><div class="bg-slate-900 p-4 flex justify-between items-center text-white"><h2 class="font-bold uppercase tracking-wide">Modificar Detalles</h2><button onclick="window.cerrarModalEdicion()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button></div><div class="p-6 grid grid-cols-1 md:grid-cols-5 gap-4"><input type="hidden" id="edit-id"><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CÓDIGO</label><input type="text" id="edit-codigo" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></div><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">REFERENCIA</label><input type="text" id="edit-ref" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></div><div class="col-span-2"><label class="text-[10px] font-bold text-slate-500">DESCRIPCIÓN</label><input type="text" id="edit-nombre" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></div><div class="col-span-1"><label class="text-[10px] font-bold text-slate-500">CATEGORÍA</label><select id="edit-cat" class="w-full border p-2 rounded outline-blue-500 bg-slate-50"></select></div><div class="col-span-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><label class="text-[10px] font-bold text-blue-700">COSTO NETO ($)</label><input type="number" id="edit-costo" step="0.01" class="w-full bg-transparent text-lg font-black outline-none"></div><div class="col-span-3 grid grid-cols-3 gap-2 border p-2 rounded-lg bg-slate-50"><div><label class="text-[10px] font-bold uppercase text-slate-500">M. Detal (%)</label><input type="number" id="edit-mdetal" class="w-full border p-1 rounded font-bold text-center outline-blue-500"></div><div><label class="text-[10px] font-bold uppercase text-slate-500">M. Mayor (%)</label><input type="number" id="edit-mmayor" class="w-full border p-1 rounded font-bold text-center outline-blue-500"></div><div><label class="text-[10px] font-bold uppercase text-slate-500">M. G. Mayor (%)</label><input type="number" id="edit-mgran" class="w-full border p-1 rounded font-bold text-center outline-blue-500"></div></div><div class="col-span-1"><label class="text-[10px] font-bold uppercase">Stock Mínimo</label><input type="number" id="edit-min" class="w-full border p-2 rounded mt-1 h-[34px] outline-blue-500"></div><div class="col-span-5 flex gap-4 mt-2"><button onclick="window.cerrarModalEdicion()" class="w-1/3 bg-slate-200 text-slate-700 py-3 rounded-lg font-bold shadow transition uppercase hover:bg-slate-300">Cancelar</button><button onclick="window.guardarEdicion()" class="w-2/3 bg-blue-600 text-white py-3 rounded-lg font-bold shadow transition uppercase hover:bg-blue-700">Guardar Cambios</button></div></div></div></div>
+
+    <div id="modal-edicion-masiva" class="fixed inset-0 bg-slate-900/80 z-[160] hidden flex justify-center items-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-pop">
+            <div class="bg-orange-500 p-4 flex justify-between items-center text-white">
+                <h2 class="font-bold uppercase tracking-wide">Cambio de Costo Masivo</h2>
+                <button onclick="window.cerrarEdicionMasiva()" class="text-white hover:text-orange-200 font-bold text-xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4 text-center">
+                <p class="text-sm font-bold text-slate-600" id="msg-items-seleccionados">Se actualizarán 0 artículos.</p>
+                <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 text-left">
+                    <label class="text-[10px] font-bold text-orange-800 uppercase block mb-1">NUEVO COSTO NETO ($) PARA TODOS</label>
+                    <input type="number" id="edit-masivo-costo" step="0.01" class="w-full border-2 border-orange-300 p-3 rounded outline-orange-500 text-lg font-black text-center text-orange-900" placeholder="Ej: 15.50">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="window.cerrarEdicionMasiva()" class="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg font-bold shadow transition uppercase hover:bg-slate-300">Cancelar</button>
+                    <button onclick="window.guardarEdicionMasiva()" class="flex-1 bg-orange-500 text-white py-3 rounded-lg font-bold shadow transition uppercase hover:bg-orange-600">Aplicar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBydRzHt9Ja3RYvBbXO7n6Cv6pyJqwIUbQ", authDomain: "sinergy-d78d0.firebaseapp.com", databaseURL: "https://sinergy-d78d0-default-rtdb.firebaseio.com", projectId: "sinergy-d78d0", storageBucket: "sinergy-d78d0.firebasestorage.app", messagingSenderId: "399343343582", appId: "1:399343343582:web:29c686fd7e229e8f20ef4f", measurementId: "G-H1DJ1KZBJJ" };
         const app = initializeApp(firebaseConfig); const db = getFirestore(app);
 
         let inventario = []; let categorias = []; let config = { tasa: 36.50, iva: 16 };
+        let sedesGlobales = ["Principal"];
         let usuariosDB_nube = []; let sesionA3 = JSON.parse(localStorage.getItem('a3_sesion_inv')) || null; let usuarioTemp = null;
         const loader = document.getElementById('loader-nube');
 
@@ -157,18 +295,50 @@
         document.getElementById('btn-global-ok').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(window.globalCallbackOk) window.globalCallbackOk(document.getElementById('modal-global-input').value); }
         document.getElementById('btn-global-cancel').onclick = function() { document.getElementById('modal-custom-global').classList.add('hidden'); if(window.globalCallbackCancel) window.globalCallbackCancel(); }
 
+        // MANEJO DE VISTAS (Pestañas)
+        window.cambiarVista = function(vista) {
+            document.getElementById('vista-inventario').classList.add('hidden');
+            document.getElementById('vista-informes').classList.add('hidden');
+            document.getElementById('btn-nav-inventario').className = 'w-full flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 text-slate-300 font-semibold transition';
+            document.getElementById('btn-nav-informes').className = 'w-full flex items-center gap-4 text-left p-3 rounded hover:bg-slate-800 text-slate-300 font-semibold transition';
+            
+            document.getElementById(`vista-${vista}`).classList.remove('hidden');
+            document.getElementById(`btn-nav-${vista}`).className = 'w-full flex items-center gap-4 text-left p-3 rounded bg-blue-600 text-white font-semibold transition';
+            
+            document.getElementById('titulo-header').innerText = vista === 'inventario' ? 'Inventario A3Sinergy' : 'Informes y Exportación';
+
+            if(vista === 'informes') {
+                const hoy = new Date().toISOString().split('T')[0];
+                const haceUnMes = new Date(); haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+                const strHaceUnMes = haceUnMes.toISOString().split('T')[0];
+
+                document.getElementById('inf-mov-desde').value = strHaceUnMes; document.getElementById('inf-mov-hasta').value = hoy;
+                document.getElementById('inf-sinmov-desde').value = strHaceUnMes; document.getElementById('inf-sinmov-hasta').value = hoy;
+            }
+        }
+
         onSnapshot(collection(db, "usuarios"), (snapshot) => { usuariosDB_nube = []; snapshot.forEach((doc) => usuariosDB_nube.push({ id: doc.id, ...doc.data() })); if(usuariosDB_nube.length === 0) setDoc(doc(db, "usuarios", "admin_master"), { username: "admin", password: "123", role: "admin", sede: "Principal" }); });
         
+        // Fetch de sedes para los selects de reportes
+        onSnapshot(doc(db, "sistema", "sedes"), (documento) => { 
+            if (documento.exists()) { 
+                sedesGlobales = documento.data().lista || ["Principal"]; 
+                const sel = document.querySelectorAll('.select-sedes'); 
+                const selTodas = document.querySelectorAll('.select-sedes-todas');
+                sel.forEach(s => { s.innerHTML=''; sedesGlobales.forEach(se => s.innerHTML+=`<option value="${se}">${se}</option>`); }); 
+                selTodas.forEach(s => { s.innerHTML='<option value="Todas">Todas las Sedes</option>'; sedesGlobales.forEach(se => s.innerHTML+=`<option value="${se}">${se}</option>`); }); 
+            } 
+        });
+
         window.checkLogin = function() { const preAuth = JSON.parse(localStorage.getItem('a3_pre_auth_inv')); if (preAuth) { localStorage.removeItem('a3_pre_auth_inv'); sesionA3 = { activa: true, username: preAuth.username, role: preAuth.role, sede: preAuth.sede || 'Principal' }; localStorage.setItem('a3_sesion_inv', JSON.stringify(sesionA3)); } if (!sesionA3 || !sesionA3.activa) { document.getElementById('modal-login').classList.remove('hidden'); } else { document.getElementById('modal-login').classList.add('hidden'); document.getElementById('label-operador').innerText = sesionA3.username + ` (${sesionA3.role})`; if(sesionA3.role === 'admin') document.getElementById('btn-menu-admin').classList.remove('hidden'); } }
         
         window.verificarLogin = function() { 
             const user = document.getElementById('login-usuario').value.trim().toLowerCase(); const pass = document.getElementById('login-clave').value; 
             const usuarioValido = usuariosDB_nube.find(u => u.username.toLowerCase() === user && u.password === pass); 
             if (usuarioValido) { 
-                if (usuarioValido.role === 'admin') { 
+                if (usuarioValido.role === 'admin' || usuarioValido.role === 'almacenista') { 
                     usuarioTemp = usuarioValido; document.getElementById('modal-login').classList.add('hidden'); document.getElementById('modal-ruta-admin').classList.remove('hidden'); 
                 } else { 
-                    // Es Cajero, lo mandamos directo al POS
                     localStorage.setItem('a3_pre_auth_pos', JSON.stringify({ username: usuarioValido.username, role: usuarioValido.role, sede: usuarioValido.sede || 'Principal' })); 
                     window.location.href = 'Sin-POS.html';
                 } 
@@ -179,10 +349,18 @@
         window.cerrarSesion = function() { sesionA3 = null; localStorage.removeItem('a3_sesion_inv'); window.location.reload(); }
 
         onSnapshot(doc(db, "sistema", "config"), (documento) => { if (documento.exists()) { config = documento.data(); document.getElementById('label-tasa-bcv').innerText = config.tasa.toFixed(2); document.getElementById('label-iva-global').innerText = config.iva + '%'; window.calcularTodo(); if(sesionA3 && sesionA3.activa) window.renderizar(); } });
-        onSnapshot(collection(db, "inventario"), (snapshot) => { inventario = []; snapshot.forEach((doc) => inventario.push({ id: doc.id, ...doc.data() })); if(sesionA3 && sesionA3.activa) window.renderizar(); });
+        onSnapshot(collection(db, "inventario"), (snapshot) => { 
+            inventario = []; const datalist = document.getElementById('lista-nombres-productos'); if(datalist) datalist.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const p = { id: doc.id, ...doc.data() };
+                inventario.push(p); 
+                if(datalist) datalist.innerHTML += `<option value="[${p.codigo}] ${p.nombre}">`;
+            }); 
+            if(sesionA3 && sesionA3.activa) window.renderizar(); 
+        });
 
         onSnapshot(doc(db, "sistema", "categorias"), (documento) => { if (documento.exists()) { categorias = documento.data().lista || []; } else { categorias = ["General"]; setDoc(doc(db, "sistema", "categorias"), { lista: categorias }); } window.actualizarInterfazCats(); });
-        window.actualizarInterfazCats = function() { const select = document.getElementById('reg-cat'); const selectEdit = document.getElementById('edit-cat'); const listaUl = document.getElementById('lista-categorias'); select.innerHTML = ''; selectEdit.innerHTML = ''; listaUl.innerHTML = ''; categorias.forEach((cat, index) => { select.innerHTML += `<option value="${cat}">${cat}</option>`; selectEdit.innerHTML += `<option value="${cat}">${cat}</option>`; listaUl.innerHTML += `<li class="flex justify-between items-center bg-slate-900 p-1.5 rounded border border-slate-700 hover:border-slate-500 transition mb-1 group"><span class="truncate pl-1 text-slate-300 font-semibold group-hover:text-white transition">${cat}</span><div class="flex gap-1 opacity-50 group-hover:opacity-100 transition"><button onclick="window.editarCategoria(${index})" class="text-blue-400 hover:text-blue-300 bg-slate-800 p-1 rounded transition" title="Renombrar">✏️</button><button onclick="window.eliminarCategoria(${index})" class="text-red-400 hover:text-red-300 bg-slate-800 p-1 rounded transition font-black" title="Eliminar">✖</button></div></li>`; }); }
+        window.actualizarInterfazCats = function() { const select = document.getElementById('reg-cat'); const selectEdit = document.getElementById('edit-cat'); const selInf = document.getElementById('inf-fisico-cat'); const listaUl = document.getElementById('lista-categorias'); select.innerHTML = ''; selectEdit.innerHTML = ''; listaUl.innerHTML = ''; if(selInf) selInf.innerHTML = '<option value="Todas">Todas las Categorías</option>'; categorias.forEach((cat, index) => { select.innerHTML += `<option value="${cat}">${cat}</option>`; selectEdit.innerHTML += `<option value="${cat}">${cat}</option>`; if(selInf) selInf.innerHTML += `<option value="${cat}">${cat}</option>`; listaUl.innerHTML += `<li class="flex justify-between items-center bg-slate-900 p-1.5 rounded border border-slate-700 hover:border-slate-500 transition mb-1 group"><span class="truncate pl-1 text-slate-300 font-semibold group-hover:text-white transition">${cat}</span><div class="flex gap-1 opacity-50 group-hover:opacity-100 transition"><button onclick="window.editarCategoria(${index})" class="text-blue-400 hover:text-blue-300 bg-slate-800 p-1 rounded transition" title="Renombrar">✏️</button><button onclick="window.eliminarCategoria(${index})" class="text-red-400 hover:text-red-300 bg-slate-800 p-1 rounded transition font-black" title="Eliminar">✖</button></div></li>`; }); }
         
         window.agregarCategoria = async function() { const input = document.getElementById('nueva-cat'); const nueva = input.value.trim(); if(!nueva) return; if(categorias.includes(nueva)) return window.mostrarModalGlobal('error', 'Duplicado', 'Esta categoría ya existe.'); loader.classList.remove('hidden'); const nuevaLista = [...categorias, nueva]; await setDoc(doc(db, "sistema", "categorias"), { lista: nuevaLista }); input.value = ''; loader.classList.add('hidden'); }
         window.editarCategoria = function(index) { const catAntigua = categorias[index]; window.mostrarModalGlobal('prompt', 'Renombrar Categoría', `Vas a renombrar "${catAntigua}".\n(Esto actualizará automáticamente todos los productos enlazados)`, catAntigua, async function(nuevaCat) { if(nuevaCat !== null && nuevaCat.trim() !== '' && nuevaCat.trim() !== catAntigua) { const catFormateada = nuevaCat.trim(); if(categorias.includes(catFormateada)) return window.mostrarModalGlobal('error', 'Error', 'Ese nombre de categoría ya está en uso.'); loader.classList.remove('hidden'); let nuevaLista = [...categorias]; nuevaLista[index] = catFormateada; await setDoc(doc(db, "sistema", "categorias"), { lista: nuevaLista }); const batchPromises = []; inventario.forEach(p => { if(p.cat === catAntigua) { batchPromises.push(updateDoc(doc(db, "inventario", p.id), { cat: catFormateada })); } }); if(batchPromises.length > 0) { await Promise.all(batchPromises); window.mostrarModalGlobal('exito', 'Éxito', `Categoría actualizada.\nSe reasignaron ${batchPromises.length} productos.`); } loader.classList.add('hidden'); } }); }
@@ -190,7 +368,32 @@
 
         window.agregarProducto = async function() { const nom = document.getElementById('reg-nombre').value; const costo = parseFloat(document.getElementById('reg-costo').value) || 0; const codIngresado = document.getElementById('reg-codigo').value.trim(); if(!nom || costo <= 0) return window.mostrarModalGlobal('error', 'Datos Incompletos', 'Costo y Descripción son campos obligatorios.'); if (codIngresado !== '') { const existe = inventario.find(p => p.codigo && p.codigo.toLowerCase() === codIngresado.toLowerCase() && p.codigo !== 'S/C'); if (existe) { return window.mostrarModalGlobal('error', 'Item Duplicado', `El código "${codIngresado}" ya pertenece a otro artículo.`); } } loader.classList.remove('hidden'); const idUnico = Date.now().toString(); const nuevo = { codigo: codIngresado || 'S/C', ref: document.getElementById('reg-ref').value || 'N/A', nombre: nom, cat: document.getElementById('reg-cat').value, costo: costo, mDetal: parseFloat(document.getElementById('reg-mdetal').value) || 0, mMayor: parseFloat(document.getElementById('reg-mmayor').value) || 0, mGran: parseFloat(document.getElementById('reg-mgran').value) || 0, existencia: 0, stockSedes: {}, stockMin: parseInt(document.getElementById('reg-min').value) || 0 }; await setDoc(doc(db, "inventario", idUnico), nuevo); window.limpiar(); loader.classList.add('hidden'); window.mostrarModalGlobal('exito', 'Registro Exitoso', 'Item registrado correctamente.\n\nRecuerda ir al Panel Admin para cargar su stock inicial.'); }
 
-        window.renderizar = function(filtro = '') { const tbody = document.getElementById('tabla-body'); tbody.innerHTML = ''; const tasa = config.tasa; const iva = config.iva / 100; const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.toLowerCase().includes(filtro) || p.ref.toLowerCase().includes(filtro)); document.getElementById('item-count').innerText = inventario.length; filtrados.forEach(p => { const fPrice = (marg) => { const val = p.costo * (1 + (marg/100)) * (1 + iva); return `<b>$${val.toFixed(2)}</b><div class='text-[9px] text-slate-400'>Bs. ${(val * tasa).toLocaleString('es-VE')}</div>`; }; tbody.innerHTML += `<tr class="hover:bg-blue-50 transition border-l-4 border-transparent hover:border-blue-500"><td class="p-4"><b>${p.codigo}</b><br><span class='text-[9px] uppercase'>${p.ref}</span></td><td class="p-4"><b>${p.nombre}</b><br><span class='text-[9px] text-blue-600 uppercase'>${p.cat}</span></td><td class="p-4 text-blue-800">${fPrice(p.mDetal || 0)}</td><td class="p-4 text-emerald-800">${fPrice(p.mMayor || 0)}</td><td class="p-4 text-purple-800">${fPrice(p.mGran || 0)}</td><td class="p-4 text-center"><button onclick="window.modificarValores('${p.id}')" class="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200 mr-1">✏️</button><button onclick="window.eliminarProd('${p.id}')" class="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200">🗑️</button></td></tr>`; }); }
+        window.renderizar = function(filtro = '') { 
+            const tbody = document.getElementById('tabla-body'); tbody.innerHTML = ''; 
+            const tasa = config.tasa; const iva = config.iva / 100; 
+            const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.toLowerCase().includes(filtro) || p.ref.toLowerCase().includes(filtro)); 
+            document.getElementById('item-count').innerText = inventario.length; 
+            
+            const chkAll = document.getElementById('chk-all');
+            if(chkAll) chkAll.checked = false;
+
+            filtrados.forEach(p => { 
+                const fPrice = (marg) => { const val = p.costo * (1 + (marg/100)) * (1 + iva); return `<b>$${val.toFixed(2)}</b><div class='text-[9px] text-slate-400'>Bs. ${(val * tasa).toLocaleString('es-VE')}</div>`; }; 
+                tbody.innerHTML += `
+                <tr class="hover:bg-blue-50 transition border-l-4 border-transparent hover:border-blue-500">
+                    <td class="p-4 text-center"><input type="checkbox" class="chk-item w-4 h-4 cursor-pointer accent-orange-500" value="${p.id}"></td>
+                    <td class="p-4"><b>${p.codigo}</b><br><span class='text-[9px] uppercase'>${p.ref}</span></td>
+                    <td class="p-4"><b>${p.nombre}</b><br><span class='text-[9px] text-blue-600 uppercase'>${p.cat}</span></td>
+                    <td class="p-4 text-blue-800">${fPrice(p.mDetal || 0)}</td>
+                    <td class="p-4 text-emerald-800">${fPrice(p.mMayor || 0)}</td>
+                    <td class="p-4 text-purple-800">${fPrice(p.mGran || 0)}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="window.modificarValores('${p.id}')" class="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200 mr-1">✏️</button>
+                        <button onclick="window.eliminarProd('${p.id}')" class="bg-red-100 text-red-600 p-2 rounded hover:bg-red-200">🗑️</button>
+                    </td>
+                </tr>`; 
+            }); 
+        }
         
         window.modificarValores = function(id) { const p = inventario.find(x => x.id === id); if (!p) return; document.getElementById('edit-id').value = p.id; document.getElementById('edit-codigo').value = p.codigo || ''; document.getElementById('edit-ref').value = p.ref || ''; document.getElementById('edit-nombre').value = p.nombre || ''; document.getElementById('edit-cat').value = p.cat || ''; document.getElementById('edit-costo').value = p.costo || 0; document.getElementById('edit-mdetal').value = p.mDetal || 0; document.getElementById('edit-mmayor').value = p.mMayor || 0; document.getElementById('edit-mgran').value = p.mGran || 0; document.getElementById('edit-min').value = p.stockMin || 0; document.getElementById('modal-edicion').classList.remove('hidden'); }
         window.cerrarModalEdicion = function() { document.getElementById('modal-edicion').classList.add('hidden'); }
@@ -199,6 +402,290 @@
         window.buscarProducto = function() { window.renderizar(document.getElementById('buscador').value.toLowerCase()); }
         window.limpiar = function() { document.getElementById('reg-codigo').value = ''; document.getElementById('reg-ref').value = ''; document.getElementById('reg-nombre').value = ''; document.getElementById('reg-costo').value = ''; document.getElementById('reg-min').value = ''; document.getElementById('prev-detal').innerText = "$0.00"; document.getElementById('prev-mayor').innerText = "$0.00"; document.getElementById('prev-gran').innerText = "$0.00"; }
         window.calcularTodo = function() { const costo = parseFloat(document.getElementById('reg-costo').value) || 0; const iva = config.iva/100; const md = (parseFloat(document.getElementById('reg-mdetal').value) || 0)/100; const mm = (parseFloat(document.getElementById('reg-mmayor').value) || 0)/100; const mg = (parseFloat(document.getElementById('reg-mgran').value) || 0)/100; if(costo > 0) { const f = (m) => (costo * (1 + m) * (1 + iva)).toFixed(2); document.getElementById('prev-detal').innerText = `$${f(md)}`; document.getElementById('prev-mayor').innerText = `$${f(mm)}`; document.getElementById('prev-gran').innerText = `$${f(mg)}`; } else { document.getElementById('prev-detal').innerText = "$0.00"; document.getElementById('prev-mayor').innerText = "$0.00"; document.getElementById('prev-gran').innerText = "$0.00"; } }
+
+        window.toggleSelectAll = function(el) {
+            const checkboxes = document.querySelectorAll('.chk-item');
+            checkboxes.forEach(chk => chk.checked = el.checked);
+        }
+
+        window.abrirEdicionMasiva = function() {
+            const seleccionados = Array.from(document.querySelectorAll('.chk-item:checked')).map(chk => chk.value);
+            if(seleccionados.length === 0) return window.mostrarModalGlobal('error', 'Sin Selección', 'Debes marcar las casillas de los artículos en la tabla antes de hacer un cambio masivo.');
+            document.getElementById('msg-items-seleccionados').innerText = `Se actualizará el costo a ${seleccionados.length} artículo(s).`;
+            document.getElementById('edit-masivo-costo').value = '';
+            document.getElementById('modal-edicion-masiva').classList.remove('hidden');
+            setTimeout(() => document.getElementById('edit-masivo-costo').focus(), 100);
+        }
+        window.cerrarEdicionMasiva = function() { document.getElementById('modal-edicion-masiva').classList.add('hidden'); }
+
+        window.guardarEdicionMasiva = async function() {
+            const nuevoCosto = parseFloat(document.getElementById('edit-masivo-costo').value);
+            if(isNaN(nuevoCosto) || nuevoCosto < 0) return window.mostrarModalGlobal('error', 'Costo Inválido', 'Por favor, ingresa un costo válido (mayor o igual a 0).');
+            const seleccionados = Array.from(document.querySelectorAll('.chk-item:checked')).map(chk => chk.value);
+            if(seleccionados.length === 0) return;
+            window.cerrarEdicionMasiva(); loader.classList.remove('hidden');
+            try {
+                const promesas = seleccionados.map(id => updateDoc(doc(db, "inventario", id), { costo: nuevoCosto }));
+                await Promise.all(promesas);
+                document.getElementById('chk-all').checked = false;
+                document.querySelectorAll('.chk-item').forEach(chk => chk.checked = false);
+                window.mostrarModalGlobal('exito', 'Actualización Masiva', `Se actualizó el costo a $${nuevoCosto.toFixed(2)} en los ${seleccionados.length} artículos con éxito.`);
+            } catch (error) { window.mostrarModalGlobal('error', 'Error', 'Ocurrió un problema de red.'); } 
+            finally { loader.classList.add('hidden'); }
+        }
+
+        /* ====================================================================================
+           NUEVO MOTOR DE REPORTES E INFORMES
+           ==================================================================================== */
+        
+        function obtenerProductoPorInput(valorInput) { const match = valorInput.match(/\[(.*?)\] (.*)/); if(match) return inventario.find(p => p.codigo === match[1]); return inventario.find(p => p.nombre === valorInput || p.codigo === valorInput); }
+
+        // Función auxiliar para saber si el "ID de firebase" (que es el Timestamp) entra en el rango
+        function estaEnRango(idFirebase, fechaInicioStr, fechaFinStr) {
+            const timestampObj = parseInt(idFirebase);
+            const tsInicio = new Date(fechaInicioStr + "T00:00:00").getTime();
+            const tsFin = new Date(fechaFinStr + "T23:59:59").getTime();
+            return (timestampObj >= tsInicio && timestampObj <= tsFin);
+        }
+
+        // --- 1. Movimiento de Unidades ---
+        window.consultarMovimientosItem = async function() {
+            const valProd = document.getElementById('inf-mov-prod').value;
+            const fDesde = document.getElementById('inf-mov-desde').value;
+            const fHasta = document.getElementById('inf-mov-hasta').value;
+
+            if(!valProd || !fDesde || !fHasta) return window.mostrarModalGlobal('error', 'Faltan Datos', 'Selecciona el producto y las dos fechas del rango.');
+            
+            const prod = obtenerProductoPorInput(valProd);
+            if(!prod) return window.mostrarModalGlobal('error', 'No Encontrado', 'El producto indicado no existe en la base de datos.');
+
+            loader.classList.remove('hidden');
+            const tbody = document.getElementById('tabla-inf-movimientos');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 font-bold animate-pulse">Consultando en la base de datos...</td></tr>';
+
+            try {
+                const ventasSnapshot = await getDocs(collection(db, "ventas"));
+                const movsSnapshot = await getDocs(collection(db, "movimientos"));
+                
+                let historial = [];
+
+                // Extraer de Ventas
+                ventasSnapshot.forEach(d => {
+                    const data = d.data();
+                    if(!data.anulada && estaEnRango(d.id, fDesde, fHasta)) {
+                        const itemEncontrado = data.items.find(i => i.id === prod.id);
+                        if(itemEncontrado) {
+                            historial.push({
+                                idTimestamp: parseInt(d.id),
+                                fecha: data.fechaHora,
+                                sede: data.sede || 'Principal',
+                                tipo: '<span class="text-blue-600 bg-blue-100 px-2 py-1 rounded border border-blue-200">🛒 VENTA (Salida)</span>',
+                                detalle: `Cajero/Vend: ${data.vendedor || 'S/N'}<br>Ticket: #${d.id.slice(-6)}`,
+                                cant: `<span class="text-red-500 font-black">-${itemEncontrado.cant}</span>`
+                            });
+                        }
+                    }
+                });
+
+                // Extraer de Movimientos (Cargos, Descargos, Traslados)
+                movsSnapshot.forEach(d => {
+                    const data = d.data();
+                    if(estaEnRango(d.id, fDesde, fHasta)) {
+                        const itemEncontrado = data.items.find(i => i.id === prod.id);
+                        if(itemEncontrado) {
+                            let badgeTipo = ''; let infoSede = ''; let colorCant = ''; let signoCant = '';
+                            if(data.tipo === 'cargar') { 
+                                badgeTipo = '<span class="text-emerald-600 bg-emerald-100 px-2 py-1 rounded border border-emerald-200">📥 CARGO (Entrada)</span>';
+                                infoSede = itemEncontrado.destino; colorCant = 'text-emerald-600'; signoCant = '+';
+                            } else if (data.tipo === 'descargar') {
+                                badgeTipo = '<span class="text-red-600 bg-red-100 px-2 py-1 rounded border border-red-200">📤 DESCARGO (Salida)</span>';
+                                infoSede = itemEncontrado.origen; colorCant = 'text-red-600'; signoCant = '-';
+                            } else if (data.tipo === 'transferir') {
+                                badgeTipo = '<span class="text-purple-600 bg-purple-100 px-2 py-1 rounded border border-purple-200">🔀 TRASLADO</span>';
+                                infoSede = `${itemEncontrado.origen} ➔ ${itemEncontrado.destino}`; colorCant = 'text-slate-800'; signoCant = '';
+                            }
+
+                            historial.push({
+                                idTimestamp: parseInt(d.id),
+                                fecha: data.fechaHora,
+                                sede: infoSede,
+                                tipo: badgeTipo,
+                                detalle: `Resp: ${data.responsable || 'S/N'}<br>Motivo: ${data.proposito}`,
+                                cant: `<span class="${colorCant} font-black">${signoCant}${itemEncontrado.cant}</span>`
+                            });
+                        }
+                    }
+                });
+
+                // Ordenar del más nuevo al más viejo
+                historial.sort((a, b) => b.idTimestamp - a.idTimestamp);
+
+                tbody.innerHTML = '';
+                if(historial.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400 font-bold">No hay movimientos para este artículo en las fechas seleccionadas.</td></tr>';
+                } else {
+                    historial.forEach(h => {
+                        tbody.innerHTML += `
+                        <tr class="hover:bg-purple-50 transition border-b border-slate-100">
+                            <td class="p-3"><span class="text-[10px] font-bold text-slate-500">${h.fecha}</span></td>
+                            <td class="p-3 font-bold text-slate-700">${h.sede}</td>
+                            <td class="p-3 text-[10px] uppercase font-black tracking-widest">${h.tipo}</td>
+                            <td class="p-3 text-[10px] text-slate-600 leading-tight">${h.detalle}</td>
+                            <td class="p-3 text-center text-sm">${h.cant}</td>
+                        </tr>`;
+                    });
+                }
+            } catch(e) {
+                console.error(e);
+                window.mostrarModalGlobal('error', 'Error', 'Ocurrió un error consultando la base de datos.');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        // --- 2. Inventario Físico ---
+        window.exportarFisico = function(formato) {
+            const sede = document.getElementById('inf-fisico-sede').value;
+            const cat = document.getElementById('inf-fisico-cat').value;
+            const inclCero = document.getElementById('inf-fisico-cero').checked;
+            const detallar = document.getElementById('inf-fisico-detallar').checked;
+
+            let dataFiltrada = [];
+            inventario.forEach(p => {
+                let pasaCat = (cat === 'Todas' || p.cat === cat);
+                if(pasaCat) {
+                    let stock = 0;
+                    if(sede === 'Todas') { stock = p.existencia || 0; } 
+                    else { stock = (p.stockSedes && p.stockSedes[sede]) ? p.stockSedes[sede] : 0; }
+
+                    if(inclCero || stock > 0) {
+                        dataFiltrada.push([
+                            p.codigo || 'S/C',
+                            p.ref || 'N/A',
+                            p.nombre,
+                            detallar ? stock : '________' // Si no se detalla, se deja linea para contar a mano
+                        ]);
+                    }
+                }
+            });
+
+            if(dataFiltrada.length === 0) return window.mostrarModalGlobal('error', 'Vacío', 'No hay datos que coincidan con estos filtros.');
+
+            const nombreArchivo = `InventarioFisico_${sede}_${new Date().getTime()}`;
+
+            if(formato === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.setFontSize(16);
+                doc.text(`Inventario Físico - Sede: ${sede}`, 14, 15);
+                doc.setFontSize(10);
+                doc.text(`Fecha de Emisión: ${new Date().toLocaleString()}`, 14, 22);
+                doc.text(`Categoría: ${cat}`, 14, 27);
+                
+                doc.autoTable({
+                    startY: 32,
+                    head: [['Código', 'Referencia', 'Descripción del Artículo', detallar ? 'Stock Sistema' : 'Conteo Físico']],
+                    body: dataFiltrada,
+                    theme: 'grid',
+                    headStyles: { fillColor: [16, 185, 129] },
+                    styles: { fontSize: 8 }
+                });
+                doc.save(`${nombreArchivo}.pdf`);
+            } else {
+                let excelData = dataFiltrada.map(r => ({ "Código": r[0], "Referencia": r[1], "Descripción": r[2], "Stock": r[3] }));
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+                XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+            }
+        }
+
+        // --- 3. Productos Sin Movimiento ---
+        window.exportarSinMovimiento = async function(formato) {
+            const sede = document.getElementById('inf-sinmov-sede').value;
+            const fDesde = document.getElementById('inf-sinmov-desde').value;
+            const fHasta = document.getElementById('inf-sinmov-hasta').value;
+
+            if(!fDesde || !fHasta) return window.mostrarModalGlobal('error', 'Fechas Requeridas', 'Debes establecer un rango de fechas para buscar.');
+
+            loader.classList.remove('hidden');
+
+            try {
+                // Descargamos para analizar en memoria
+                const ventasSnapshot = await getDocs(collection(db, "ventas"));
+                const movsSnapshot = await getDocs(collection(db, "movimientos"));
+
+                let setIdsConMovimiento = new Set();
+
+                ventasSnapshot.forEach(d => {
+                    const data = d.data();
+                    if(!data.anulada && data.sede === sede && estaEnRango(d.id, fDesde, fHasta)) {
+                        data.items.forEach(i => setIdsConMovimiento.add(i.id));
+                    }
+                });
+
+                movsSnapshot.forEach(d => {
+                    const data = d.data();
+                    if(estaEnRango(d.id, fDesde, fHasta)) {
+                        data.items.forEach(i => {
+                            if(data.tipo === 'cargar' && i.destino === sede) setIdsConMovimiento.add(i.id);
+                            if(data.tipo === 'descargar' && i.origen === sede) setIdsConMovimiento.add(i.id);
+                            if(data.tipo === 'transferir' && (i.origen === sede || i.destino === sede)) setIdsConMovimiento.add(i.id);
+                        });
+                    }
+                });
+
+                // Evaluamos contra inventario actual
+                let dataExport = [];
+                inventario.forEach(p => {
+                    const stockSede = (p.stockSedes && p.stockSedes[sede]) ? p.stockSedes[sede] : 0;
+                    // Condición: Que tenga stock PERO que su ID NO esté en el Set de movimientos
+                    if(stockSede > 0 && !setIdsConMovimiento.has(p.id)) {
+                        dataExport.push([ p.codigo || 'S/C', p.nombre, p.cat, stockSede ]);
+                    }
+                });
+
+                if(dataExport.length === 0) {
+                    loader.classList.add('hidden');
+                    return window.mostrarModalGlobal('info', 'Todo en Orden', `Excelente. Todos los productos en [${sede}] tuvieron alguna actividad en este rango de tiempo.`);
+                }
+
+                const nombreArchivo = `SinMovimiento_${sede}_${new Date().getTime()}`;
+
+                if(formato === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    doc.setFontSize(16);
+                    doc.setTextColor(234, 88, 12); // Naranja oscuro
+                    doc.text(`Artículos Estancados - Sede: ${sede}`, 14, 15);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100, 116, 139);
+                    doc.text(`(Con stock mayor a 0, pero sin movimiento entre ${fDesde} y ${fHasta})`, 14, 22);
+                    
+                    doc.autoTable({
+                        startY: 28,
+                        head: [['Código', 'Descripción del Artículo', 'Categoría', 'Stock Estancado']],
+                        body: dataExport,
+                        theme: 'grid',
+                        headStyles: { fillColor: [249, 115, 22] }, // Naranja
+                        styles: { fontSize: 8 }
+                    });
+                    doc.save(`${nombreArchivo}.pdf`);
+                } else {
+                    let excelData = dataExport.map(r => ({ "Código": r[0], "Descripción": r[1], "Categoría": r[2], "Stock_Atascado": r[3] }));
+                    const ws = XLSX.utils.json_to_sheet(excelData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Sin Movimiento");
+                    XLSX.writeFile(wb, `${nombreArchivo}.xlsx`);
+                }
+
+            } catch(e) {
+                console.error(e);
+                window.mostrarModalGlobal('error', 'Error', 'Ocurrió un error cruzando los datos del inventario.');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
 
         window.checkLogin();
     </script>
