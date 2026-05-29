@@ -452,14 +452,24 @@
             }
         }
 
-        window.checkLogin = function() { 
+        window.checkLogin = function() {
+            // Actualizamos la variable directamente desde el LocalStorage cada vez que se verifica
+            sesionAdmin = JSON.parse(localStorage.getItem('a3_sesion_global')) || null;
+            
             if (!sesionAdmin || !sesionAdmin.activa) {
-                document.getElementById('modal-login').classList.remove('hidden'); 
-            } else { 
-                document.getElementById('modal-login').classList.add('hidden'); // LA CORRECCIÓN CLAVE
-                window.aplicarPermisos(); 
-            } 
+                document.getElementById('modal-login').classList.remove('hidden');
+            } else {
+                // Verificación de seguridad de roles
+                if (sesionAdmin.role === 'admin' || sesionAdmin.role === 'almacenista') {
+                    document.getElementById('modal-login').classList.add('hidden');
+                    window.aplicarPermisos();
+                } else {
+                    // Si un vendedor intenta entrar aquí, lo devuelve a su zona permitida
+                    window.location.href = 'Sin-POS.html';
+                }
+            }
         }
+
         window.cerrarSesion = function() { sesionAdmin = null; localStorage.removeItem('a3_sesion_global'); window.location.reload(); }
         window.saltarModulo = function(modulo) { window.location.href = modulo === 'inventario' ? 'Sinergy.html' : 'Sin-POS.html'; }
 
