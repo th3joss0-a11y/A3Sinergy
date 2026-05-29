@@ -279,7 +279,10 @@
 
         let inventario = []; let categorias = []; let config = { tasa: 36.50, iva: 16 };
         let sedesGlobales = ["Principal"];
-        let usuariosDB_nube = []; let sesionA3 = JSON.parse(localStorage.getItem('a3_sesion_inv')) || null; let usuarioTemp = null;
+        let usuariosDB_nube = []; 
+        // AHORA USA LA SESIÓN GLOBAL
+        let sesionA3 = JSON.parse(localStorage.getItem('a3_sesion_global')) || null; 
+        let usuarioTemp = null;
         const loader = document.getElementById('loader-nube');
 
         // Modal Global
@@ -330,23 +333,55 @@
             } 
         });
 
-        window.checkLogin = function() { const preAuth = JSON.parse(localStorage.getItem('a3_pre_auth_inv')); if (preAuth) { localStorage.removeItem('a3_pre_auth_inv'); sesionA3 = { activa: true, username: preAuth.username, role: preAuth.role, sede: preAuth.sede || 'Principal' }; localStorage.setItem('a3_sesion_inv', JSON.stringify(sesionA3)); } if (!sesionA3 || !sesionA3.activa) { document.getElementById('modal-login').classList.remove('hidden'); } else { document.getElementById('modal-login').classList.add('hidden'); document.getElementById('label-operador').innerText = sesionA3.username + ` (${sesionA3.role})`; if(sesionA3.role === 'admin') document.getElementById('btn-menu-admin').classList.remove('hidden'); } }
+        // FUNCIONES DE SESIÓN UNIFICADA
+        window.checkLogin = function() { 
+            sesionA3 = JSON.parse(localStorage.getItem('a3_sesion_global'));
+            if (!sesionA3 || !sesionA3.activa) { 
+                document.getElementById('modal-login').classList.remove('hidden'); 
+            } else { 
+                document.getElementById('modal-login').classList.add('hidden'); 
+                document.getElementById('label-operador').innerText = sesionA3.username + ` (${sesionA3.role.toUpperCase()})`; 
+                if(sesionA3.role === 'admin' || sesionA3.role === 'almacenista') {
+                    document.getElementById('btn-menu-admin').classList.remove('hidden'); 
+                }
+            } 
+        }
         
         window.verificarLogin = function() { 
-            const user = document.getElementById('login-usuario').value.trim().toLowerCase(); const pass = document.getElementById('login-clave').value; 
-            const usuarioValido = usuariosDB_nube.find(u => u.username.toLowerCase() === user && u.password === pass); 
+            const user = document.getElementById('login-usuario').value.trim().toLowerCase(); 
+            const pass = document.getElementById('login-clave').value; 
+            const usuarioValido = usuariosDB_nube.find(u => u.username.toLowerCase() === user && (u.password === pass || (u.role === 'vendedor' && u.password === '' && pass === ''))); 
+            
             if (usuarioValido) { 
+                let nSesion = { activa: true, username: usuarioValido.username, role: usuarioValido.role, sede: usuarioValido.sede || 'Principal' };
+                localStorage.setItem('a3_sesion_global', JSON.stringify(nSesion));
+                sesionA3 = nSesion;
+                
                 if (usuarioValido.role === 'admin' || usuarioValido.role === 'almacenista') { 
-                    usuarioTemp = usuarioValido; document.getElementById('modal-login').classList.add('hidden'); document.getElementById('modal-ruta-admin').classList.remove('hidden'); 
+                    document.getElementById('modal-login').classList.add('hidden'); 
+                    document.getElementById('modal-ruta-admin').classList.remove('hidden'); 
                 } else { 
-                    localStorage.setItem('a3_pre_auth_pos', JSON.stringify({ username: usuarioValido.username, role: usuarioValido.role, sede: usuarioValido.sede || 'Principal' })); 
                     window.location.href = 'Sin-POS.html';
                 } 
-            } else { window.mostrarModalGlobal('error', 'Error de Acceso', 'Credenciales incorrectas.'); document.getElementById('login-clave').value = ''; } 
+            } else { 
+                window.mostrarModalGlobal('error', 'Error de Acceso', 'Credenciales incorrectas.'); 
+                document.getElementById('login-clave').value = ''; 
+            } 
         }
-        window.irARuta = function(destino) { if (destino === 'inventario') { sesionA3 = { activa: true, username: usuarioTemp.username, role: usuarioTemp.role, sede: usuarioTemp.sede || 'Principal' }; localStorage.setItem('a3_sesion_inv', JSON.stringify(sesionA3)); document.getElementById('modal-ruta-admin').classList.add('hidden'); window.checkLogin(); } else if (destino === 'pos') { localStorage.setItem('a3_pre_auth_pos', JSON.stringify({ username: usuarioTemp.username, role: usuarioTemp.role, sede: usuarioTemp.sede || 'Principal' })); window.location.href = 'Sin-POS.html'; } else if (destino === 'admin') { localStorage.setItem('a3_sesion_admin', JSON.stringify({ activa: true, username: usuarioTemp.username, role: usuarioTemp.role })); window.location.href = 'Sin-Admin.html'; } }
-        window.irARutaAdmin = function() { localStorage.setItem('a3_sesion_admin', JSON.stringify({ activa: true, username: sesionA3.username, role: sesionA3.role })); window.location.href = 'Sin-Admin.html'; }
-        window.cerrarSesion = function() { sesionA3 = null; localStorage.removeItem('a3_sesion_inv'); window.location.reload(); }
+
+        window.irARuta = function(destino) { 
+            document.getElementById('modal-ruta-admin').classList.add('hidden');
+            if (destino === 'inventario') { 
+                window.checkLogin(); 
+            } else if (destino === 'pos') { 
+                window.location.href = 'Sin-POS.html'; 
+            } else if (destino === 'admin') { 
+                window.location.href = 'Sin-Admin.html'; 
+            } 
+        }
+
+        window.irARutaAdmin = function() { window.location.href = 'Sin-Admin.html'; }
+        window.cerrarSesion = function() { sesionA3 = null; localStorage.removeItem('a3_sesion_global'); window.location.reload(); }
 
         onSnapshot(doc(db, "sistema", "config"), (documento) => { if (documento.exists()) { config = documento.data(); document.getElementById('label-tasa-bcv').innerText = config.tasa.toFixed(2); document.getElementById('label-iva-global').innerText = config.iva + '%'; window.calcularTodo(); if(sesionA3 && sesionA3.activa) window.renderizar(); } });
         onSnapshot(collection(db, "inventario"), (snapshot) => { 
