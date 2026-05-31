@@ -238,10 +238,10 @@
 
                 <div id="vista-sedes" class="hidden space-y-6">
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                        <h3 class="font-black text-slate-700 uppercase mb-4">Nueva Sede</h3>
-                        <div class="flex gap-2"><input type="text" id="nueva-sede" class="w-full border-2 p-2 rounded-lg bg-slate-50 outline-blue-500 font-bold" placeholder="Nombre de la nueva sede..."><button onclick="window.agregarSede()" class="bg-slate-800 text-white px-6 py-2 rounded-lg font-black">AÑADIR</button></div>
+                        <h3 class="font-black text-slate-700 uppercase mb-4 flex items-center gap-2">🏢 Gestión de Sedes y Patrimonio</h3>
+                        <div class="flex gap-2"><input type="text" id="nueva-sede" class="w-full border-2 p-2 rounded-lg bg-slate-50 outline-blue-500 font-bold" placeholder="Nombre de la nueva sede..."><button onclick="window.agregarSede()" class="bg-slate-800 text-white px-6 py-2 rounded-lg font-black shadow-lg">AÑADIR</button></div>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 bg-slate-50/50">
                         <div id="grid-sedes" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
                     </div>
                 </div>
@@ -515,18 +515,18 @@
             sedesGlobales.forEach((s, i) => { 
                 let valor = patrimonioPorSedeGlobal[s] || 0;
                 grid.innerHTML += `
-                <div class="bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl text-center shadow-sm relative hover:border-blue-400 transition flex flex-col justify-between">
+                <div class="bg-white border-2 border-slate-200 p-4 rounded-2xl text-center shadow-sm relative hover:border-blue-400 transition flex flex-col justify-between h-full">
                     <div>
                         <div class="text-3xl mb-2">🏢</div>
                         <h4 class="font-black text-slate-700 leading-tight">${s}</h4>
-                        <div class="mt-2 bg-white border border-slate-200 rounded-lg py-1 px-2 shadow-inner inline-block">
-                            <p class="text-[9px] text-slate-400 font-bold uppercase">Patrimonio</p>
-                            <p class="text-blue-600 font-black text-sm">$${valor.toFixed(2)}</p>
+                        <div class="mt-3 bg-slate-50 border border-slate-100 rounded-lg py-2 px-2 shadow-inner inline-block w-full">
+                            <p class="text-[9px] text-slate-400 font-bold uppercase mb-1">Patrimonio Asignado</p>
+                            <p class="text-blue-600 font-black text-lg">$${valor.toFixed(2)}</p>
                         </div>
                     </div>
-                    <div class="flex gap-1 justify-center mt-4">
-                        <button onclick="window.editarSede(${i})" title="Editar nombre" class="flex-1 bg-blue-100 text-blue-600 py-1 rounded-md hover:bg-blue-600 hover:text-white transition text-xs font-bold">Editar</button>
-                        <button onclick="window.eliminarSedeUI(${i})" title="Eliminar sede" class="flex-1 bg-red-100 text-red-600 py-1 rounded-md hover:bg-red-600 hover:text-white transition text-xs font-bold">Borrar</button>
+                    <div class="flex gap-2 justify-center mt-4">
+                        <button onclick="window.editarSede(${i})" title="Editar nombre" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition text-xs font-bold border border-blue-100 shadow-sm">Editar</button>
+                        <button onclick="window.eliminarSedeUI(${i})" title="Eliminar sede" class="flex-1 bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-600 hover:text-white transition text-xs font-bold border border-red-100 shadow-sm">Borrar</button>
                     </div>
                 </div>`; 
             }); 
