@@ -457,18 +457,15 @@
         }
 
         window.checkLogin = function() {
-            // Actualizamos la variable directamente desde el LocalStorage cada vez que se verifica
             sesionAdmin = JSON.parse(localStorage.getItem('a3_sesion_global')) || null;
             
             if (!sesionAdmin || !sesionAdmin.activa) {
                 document.getElementById('modal-login').classList.remove('hidden');
             } else {
-                // Verificación de seguridad de roles
                 if (sesionAdmin.role === 'admin' || sesionAdmin.role === 'almacenista') {
                     document.getElementById('modal-login').classList.add('hidden');
                     window.aplicarPermisos();
                 } else {
-                    // Si un vendedor intenta entrar aquí, lo devuelve a su zona permitida
                     window.location.href = 'Sin-POS.html';
                 }
             }
@@ -551,7 +548,7 @@
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById('resumen-fecha-inicio').value = hoy;
             document.getElementById('resumen-fecha-fin').value = hoy;
-            document.getElementById('resumen-resultados').innerHTML = `<p class="text-center text-slate-400 italic py-10">Selecciona los filtros y haz clic en Calcular.</p>`;
+            document.getElementById('resumen-resultados').innerHTML = `<p class="text-center text-slate-400 italic py-10">Selecciona los filtros and haz clic en Calcular.</p>`;
             document.getElementById('modal-resumen-cuentas').classList.remove('hidden');
         }
 
@@ -697,7 +694,6 @@
 
             ventasGlobalesAdmin.forEach(v => { 
                 const idTs = parseInt(v.id);
-                // Cálculos de métricas semanales
                 if (idTs >= tsInicioSemana) {
                     if (!v.anulada) {
                         ventasTotales += v.totalUSD;
@@ -707,7 +703,6 @@
                     }
                 }
                 
-                // Ranking
                 if(!v.anulada) { 
                     if (idTs >= fechaCorteRanking) {
                         const vend = v.vendedor || 'Desconocido'; 
@@ -795,12 +790,21 @@
             
             inventarioGlobal.forEach(p => { 
                 let c = p.costo || 0;
-                patrimonioTotal += ((p.existencia||0) * c); 
+                let ext = p.existencia || 0;
+                patrimonioTotal += (ext * c); 
                 
-                if(p.stockSedes) {
+                // Si el producto tiene el mapa de sedes asignado correctamente
+                if(p.stockSedes && Object.keys(p.stockSedes).length > 0) {
                     for (const [sede, cant] of Object.entries(p.stockSedes)) {
                         if (!patrimonioPorSede[sede]) patrimonioPorSede[sede] = 0;
                         patrimonioPorSede[sede] += (cant * c);
+                    }
+                } else {
+                    // MECANISMO DE RESPALDO: Si el producto no tiene desglose de sedes aún en la BD,
+                    // asignamos todo su valor a la sede "Principal" por defecto para que aparezca.
+                    if(ext > 0) {
+                        if (!patrimonioPorSede["Principal"]) patrimonioPorSede["Principal"] = 0;
+                        patrimonioPorSede["Principal"] += (ext * c);
                     }
                 }
             }); 
