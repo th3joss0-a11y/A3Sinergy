@@ -31,10 +31,10 @@
             <div id="modal-global-icon" class="text-6xl mb-4">⚠️</div><h3 id="modal-global-title" class="text-xl font-black text-slate-800 mb-2">Título</h3>
             <p id="modal-global-message" class="text-slate-500 font-medium mb-6">Mensaje</p>
             <input type="text" id="modal-global-input" class="hidden w-full border-2 p-3 rounded-xl font-bold outline-none text-center mb-6" placeholder="Escribe aquí...">
-            <div id="modal-global-buttons" class="flex gap-2 justify-center">
-                <button id="btn-global-cancel" class="hidden flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition uppercase">Cancelar</button>
-                <button id="btn-global-ok" class="flex-1 text-white py-3 rounded-xl font-black shadow-lg transition uppercase">Aceptar</button>
-            </div>
+          <div class="flex gap-2">
+    <button type="button" class="bg-blue-600 px-4 py-2 rounded font-bold text-sm w-2/3">Subir</button>
+    <button type="button" onclick="window.descargarPlantillaStock(event)" class="bg-slate-700 px-4 py-2 rounded font-bold text-xs w-1/3">Plantilla</button>
+</div>
         </div>
     </div>
 
@@ -840,26 +840,38 @@
         // --- MOVIMIENTOS MASIVOS ---
         function obtenerProductoPorInput(valorInput) { const match = valorInput.match(/\[(.*?)\] (.*)/); if(match) return inventarioGlobal.find(p => p.codigo === match[1]); return inventarioGlobal.find(p => p.nombre === valorInput || p.codigo === valorInput); }
 
-        window.descargarPlantillaStock = function() {
-            const contenido = "Codigo,Cantidad\nEJEMPLO-001,50";
-            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "plantilla_masivo_stock.csv";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+      window.descargarPlantillaStock = function(e) {
+            if(e) e.preventDefault();
+            try {
+                const contenido = "Codigo,Cantidad\nEJEMPLO-001,50";
+                const uri = "data:text/csv;charset=utf-8," + encodeURIComponent(contenido);
+                const link = document.createElement("a");
+                link.href = uri;
+                link.download = "plantilla_masivo_stock.csv";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch(error) {
+                console.error("Error descargando plantilla:", error);
+                window.mostrarModalGlobal('error', 'Fallo en descarga', 'El navegador bloqueó la creación del archivo.');
+            }
         };
 
-        window.descargarPlantillaItems = function() {
-            const contenido = "Codigo,Nombre,Costo,Precio_Detal,Precio_Mayor,Precio_Gran,Stock_Inicial\nNUEVO-001,Producto de Ejemplo,10.50,15.00,14.00,13.00,100";
-            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "plantilla_nuevos_items.csv";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        window.descargarPlantillaItems = function(e) {
+            if(e) e.preventDefault();
+            try {
+                const contenido = "Codigo,Nombre,Costo,Precio_Detal,Precio_Mayor,Precio_Gran,Stock_Inicial\nNUEVO-001,Producto de Ejemplo,10.50,15.00,14.00,13.00,100";
+                const uri = "data:text/csv;charset=utf-8," + encodeURIComponent(contenido);
+                const link = document.createElement("a");
+                link.href = uri;
+                link.download = "plantilla_nuevos_items.csv";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch(error) {
+                console.error("Error descargando plantilla:", error);
+                window.mostrarModalGlobal('error', 'Fallo en descarga', 'El navegador bloqueó la creación del archivo.');
+            }
         };
 
         window.agregarListaMovimiento = function(tipo) {
