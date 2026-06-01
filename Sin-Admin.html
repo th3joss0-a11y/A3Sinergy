@@ -840,6 +840,28 @@
         // --- MOVIMIENTOS MASIVOS ---
         function obtenerProductoPorInput(valorInput) { const match = valorInput.match(/\[(.*?)\] (.*)/); if(match) return inventarioGlobal.find(p => p.codigo === match[1]); return inventarioGlobal.find(p => p.nombre === valorInput || p.codigo === valorInput); }
 
+        window.descargarPlantillaStock = function() {
+            const contenido = "Codigo,Cantidad\nEJEMPLO-001,50";
+            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "plantilla_masivo_stock.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.descargarPlantillaItems = function() {
+            const contenido = "Codigo,Nombre,Costo,Precio_Detal,Precio_Mayor,Precio_Gran,Stock_Inicial\nNUEVO-001,Producto de Ejemplo,10.50,15.00,14.00,13.00,100";
+            const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "plantilla_nuevos_items.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
         window.agregarListaMovimiento = function(tipo) {
             const valProd = document.getElementById(`mov-${tipo === 'transferir' ? 'trans' : (tipo==='cargar'?'cargar':'desc')}-prod`).value;
             const cant = parseInt(document.getElementById(`mov-${tipo === 'transferir' ? 'trans' : (tipo==='cargar'?'cargar':'desc')}-cant`).value) || 0;
